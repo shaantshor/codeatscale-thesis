@@ -1,0 +1,15 @@
+.cm-editor-wrap {
+  height: 100%;
+  overflow: hidden;
+}
+
+.cm-editor-wrap .cm-editor {
+  height: 100%;
+}
+
+.cm-editor-wrap .cm-scroller {
+  overflow: auto;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'Menlo', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
