@@ -41,51 +41,70 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 #step-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
 #step-header{padding:9px 12px 7px;flex-shrink:0;}
-#step-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 8px;border-radius:20px;margin-bottom:6px;}
+#step-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 9px;border-radius:20px;margin-bottom:7px;}
 #step-badge.call{background:rgba(166,227,161,0.15);color:#a6e3a1;border:1px solid rgba(166,227,161,0.3);}
-#step-badge.ret{background:rgba(249,226,175,0.15);color:#f9e2af;border:1px solid rgba(249,226,175,0.3);}
-#step-badge.line{background:rgba(137,180,250,0.15);color:#89b4fa;border:1px solid rgba(137,180,250,0.3);}
-#step-desc{font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.75);line-height:1.4;min-height:18px;font-family:'Fira Code',Consolas,monospace;}
-#step-counter-line{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#step-badge.return{background:rgba(249,226,175,0.15);color:#f9e2af;border:1px solid rgba(249,226,175,0.3);}
+#step-badge.line{background:rgba(137,180,250,0.13);color:#89b4fa;border:1px solid rgba(137,180,250,0.28);}
+#step-badge.swap{background:rgba(243,139,168,0.16);color:#f38ba8;border:1px solid rgba(243,139,168,0.35);box-shadow:0 0 12px rgba(243,139,168,0.25);}
+#step-badge.compare{background:rgba(148,226,213,0.14);color:#94e2d5;border:1px solid rgba(148,226,213,0.3);}
+#step-badge.loop{background:rgba(203,166,247,0.14);color:#cba6f7;border:1px solid rgba(203,166,247,0.3);}
+#step-desc{font-size:13px;font-weight:500;color:rgba(255,255,255,0.82);line-height:1.45;min-height:18px;font-family:'Fira Code',Consolas,monospace;}
+#step-counter-line{display:flex;align-items:center;gap:8px;margin-top:7px;}
 #step-count-text{font-size:10px;color:rgba(255,255,255,0.3);font-variant-numeric:tabular-nums;white-space:nowrap;}
 #prog-bar{flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;cursor:pointer;}
 #prog-fill{height:100%;background:linear-gradient(90deg,#89b4fa,#cba6f7);border-radius:2px;transition:width 0.15s ease;pointer-events:none;}
+#step-dots{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;margin-top:8px;padding-bottom:2px;}
+.step-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,0.12);cursor:pointer;transition:transform 0.12s,background 0.12s;}
+.step-dot:hover{transform:scale(1.5);}
+.step-dot.active{transform:scale(1.7);background:#cdd6f4 !important;}
+.step-dot-call{background:rgba(166,227,161,0.45);}
+.step-dot-return{background:rgba(249,226,175,0.45);}
+.step-dot-line{background:rgba(137,180,250,0.3);}
+.step-dot-swap{background:rgba(243,139,168,0.7);}
+.step-dot-compare{background:rgba(148,226,213,0.5);}
+.step-dot-loop{background:rgba(203,166,247,0.5);}
 
 #main-row{flex:1;display:flex;overflow:hidden;min-height:0;}
 
-#source-panel{width:225px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:6px 0;}
-.src-line{display:flex;align-items:baseline;gap:7px;padding:1.5px 10px;line-height:1.6;border-left:2px solid transparent;}
-.src-line.src-active{background:rgba(137,180,250,0.1);border-left:2px solid #89b4fa;}
+#source-panel{width:clamp(210px,24%,380px);flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:8px 0;}
+.src-line{display:flex;align-items:baseline;gap:7px;padding:2px 10px;line-height:1.65;border-left:2px solid transparent;transition:background 0.15s,border-color 0.15s;}
+.src-line.src-active{background:linear-gradient(90deg,rgba(137,180,250,0.16),rgba(137,180,250,0.03));border-left:2px solid #89b4fa;box-shadow:inset 0 0 18px rgba(137,180,250,0.12);}
 .src-ln{color:rgba(255,255,255,0.18);min-width:20px;text-align:right;user-select:none;flex-shrink:0;font-size:10px;font-family:'Fira Code',Consolas,monospace;}
 .src-txt{color:rgba(255,255,255,0.45);white-space:pre;font-family:'Fira Code',Consolas,monospace;font-size:11.5px;}
-.src-active .src-txt{color:#cdd6f4;}
+.src-active .src-txt{color:#eef1fb;text-shadow:0 0 14px rgba(137,180,250,0.35);}
 
 #canvas-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
-#stack-breadcrumb{padding:6px 12px;font-size:11px;font-family:'Fira Code',Consolas,monospace;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap;overflow-x:auto;flex-shrink:0;color:rgba(255,255,255,0.5);}
+#stack-breadcrumb{padding:7px 14px;font-size:11px;font-family:'Fira Code',Consolas,monospace;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap;overflow-x:auto;flex-shrink:0;color:rgba(255,255,255,0.5);}
 .bc-sep{color:rgba(255,255,255,0.18);margin:0 5px;}
 .bc-active{font-weight:700;}
 
-#anim-canvas{flex:1;position:relative;overflow:auto;padding:14px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px;}
+#anim-canvas{
+  flex:1;position:relative;overflow:auto;padding:18px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:14px;
+  background-image:radial-gradient(rgba(255,255,255,0.05) 1px,transparent 1px);
+  background-size:22px 22px;
+}
 .canvas-empty{color:rgba(255,255,255,0.2);font-style:italic;font-size:12px;padding:20px;width:100%;text-align:center;}
 
 @keyframes frame-enter{from{opacity:0.3;transform:translateY(-4px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
-.var-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:7px;width:128px;flex-shrink:0;overflow:hidden;animation:frame-enter 0.18s ease-out;box-shadow:0 2px 10px rgba(0,0,0,0.15);}
-.vc-head{font-size:9.5px;color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.03);padding:5px 8px;cursor:grab;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);letter-spacing:0.2px;}
+.var-card{background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.09);border-radius:8px;width:clamp(120px,13%,180px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.2s ease-out;box-shadow:0 3px 14px rgba(0,0,0,0.2);backdrop-filter:blur(2px);}
+.vc-head{font-size:9.5px;color:rgba(255,255,255,0.42);background:rgba(255,255,255,0.035);padding:6px 9px;cursor:grab;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);letter-spacing:0.2px;}
 .vc-head:active{cursor:grabbing;}
 .vc-close{cursor:pointer;opacity:0.35;font-size:11px;padding:0 2px;}
 .vc-close:hover{opacity:0.9;}
-.vc-val{padding:9px 8px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
+.vc-val{padding:10px 9px;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
 
 .arr-card{width:auto;max-width:100%;}
-.arr-row{display:flex;padding:8px;gap:3px;overflow-x:auto;}
-.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:3px 8px;min-width:28px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;}
+.arr-card .vc-head{background:linear-gradient(90deg,rgba(250,179,135,0.12),rgba(255,255,255,0.02));}
+.arr-row{display:flex;padding:10px;gap:4px;overflow-x:auto;}
+.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 9px;min-width:30px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
+.arr-box.arr-swapping{z-index:8;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 .arr-idx{font-size:8px;color:rgba(255,255,255,0.25);}
-.arr-val{font-size:13px;font-weight:600;color:#cdd6f4;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
-.arr-box.arr-changed{background:rgba(166,227,161,0.18);border-color:rgba(166,227,161,0.5);animation:box-pulse 0.4s ease;}
-.arr-box.arr-hl{border-color:#cba6f7;box-shadow:0 0 0 1px rgba(203,166,247,0.45);}
-@keyframes box-pulse{0%{transform:scale(1.22);}100%{transform:scale(1);}}
+.arr-val{font-size:14px;font-weight:600;color:#cdd6f4;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
+.arr-box.arr-changed{background:rgba(166,227,161,0.2);border-color:rgba(166,227,161,0.55);animation:box-pulse 0.4s ease;}
+.arr-box.arr-hl{border-color:#cba6f7;box-shadow:0 0 0 1px rgba(203,166,247,0.45),0 0 14px rgba(203,166,247,0.3);}
+@keyframes box-pulse{0%{transform:scale(1.25);}100%{transform:scale(1);}}
 
-#vars-panel{width:148px;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.07);overflow-y:auto;display:flex;flex-direction:column;}
+#vars-panel{width:clamp(140px,16%,230px);flex-shrink:0;border-left:1px solid rgba(255,255,255,0.07);overflow-y:auto;display:flex;flex-direction:column;}
 #vars-list{padding:4px 0;}
 .var-row{display:flex;gap:5px;font-family:'Fira Code',Consolas,monospace;font-size:10.5px;padding:3px 10px;line-height:1.7;flex-wrap:wrap;}
 .var-row-k{color:rgba(255,255,255,0.4);}
@@ -150,6 +169,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
           <span id="step-count-text">- / -</span>
           <div id="prog-bar"><div id="prog-fill" style="width:0%"></div></div>
         </div>
+        <div id="step-dots"></div>
       </div>
 
       <div id="main-row">
@@ -200,7 +220,7 @@ var cmap = {}, ci = 0;
 function col(name) { if (!cmap[name]) cmap[name] = PALETTE[ci++ % PALETTE.length]; return cmap[name]; }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 var KIND_COLOR = {
@@ -249,21 +269,117 @@ function computeSteps(frames) {
   return steps;
 }
 
-function stepDesc(step) {
+// Most real swaps (e.g. the classic temp = a; a = b; b = temp pattern) are spread across
+// several consecutive 'line' steps, so only ONE array index actually changes per step — a
+// naive "diff against the immediately previous step" never sees two indices change at once.
+// This does a single forward pass over the whole trace, keeping a per-array "baseline"
+// snapshot that only advances once a change has fully settled: a single changed index means
+// "mid-swap, keep waiting"; two changed indices forming a clean swap relative to the baseline
+// means "swap complete, narrate + animate it on this step"; anything else just resyncs the
+// baseline. Precomputed once so it works correctly regardless of which order the user steps
+// through afterward (forward, backward, or jumping via the dot timeline).
+function precomputeSwaps() {
+  var result = new Array(steps.length).fill(null);
+  var baseline = {};
+  for (var i = 0; i < steps.length; i++) {
+    var locals = steps[i].locals;
+    var names = Object.keys(locals);
+    for (var ni = 0; ni < names.length; ni++) {
+      var nm = names[ni];
+      var e = locals[nm];
+      if (e.k !== 'list' && e.k !== 'tuple' || !e.items) continue;
+      if (!Object.prototype.hasOwnProperty.call(baseline, nm)) {
+        baseline[nm] = e.items.slice();
+        continue;
+      }
+      var base = baseline[nm];
+      if (base.length !== e.items.length) { baseline[nm] = e.items.slice(); continue; }
+      var changed = [];
+      for (var k = 0; k < e.items.length; k++) {
+        if (base[k] !== e.items[k]) changed.push(k);
+      }
+      if (changed.length === 0) continue;
+      if (changed.length === 1) continue; // mid-swap — keep the old baseline and wait
+      if (changed.length === 2 && base[changed[0]] === e.items[changed[1]] && base[changed[1]] === e.items[changed[0]]) {
+        result[i] = { name: nm, pair: [changed[0], changed[1]] };
+      }
+      baseline[nm] = e.items.slice();
+    }
+  }
+  return result;
+}
+
+// Resolves a simple index expression ("j", "j + 1", "3") against the current locals.
+// Heuristic, source-text based — same caveat class as detectHighlightedIndices.
+function resolveIndexExpr(expr, locals) {
+  expr = expr.trim();
+  if (/^\\d+$/.test(expr)) return parseInt(expr, 10);
+  var m = expr.match(/^([a-zA-Z_]\\w*)\\s*([+-]\\s*\\d+)?$/);
+  if (!m) return null;
+  var base = locals[m[1]];
+  if (!base || base.k !== 'int') return null;
+  var n = parseInt(base.r, 10);
+  if (m[2]) n += parseInt(m[2].replace(/\\s+/g, ''), 10);
+  return n;
+}
+
+// Produces a higher-level "what just happened / what's about to happen" narration instead
+// of just echoing the raw source line. Priority: a completed swap (diffed against the
+// previous step) > an in-progress comparison on the active line > a loop re-entry > the
+// raw line text as a fallback. Returns { text, kind } where kind drives badge color.
+function observeStep(stepIdx) {
+  var step = steps[stepIdx];
+
   if (step.type === 'call') {
     var caller = step.stack.length > 1 ? step.stack[step.stack.length-2].func+'()' : 'top level';
-    return 'Entering ' + step.func + '() from ' + caller;
+    return { text: 'Entering ' + step.func + '() from ' + caller, kind: 'call' };
   }
   if (step.type === 'return') {
     var callee = step.stack.length > 1 ? step.stack[step.stack.length-2].func+'()' : 'top level';
-    return step.func + '() → ' + shortLabel(step.ret) + ' (back to ' + callee + ')';
+    return { text: step.func + '() → ' + shortLabel(step.ret) + ' (back to ' + callee + ')', kind: 'return' };
   }
-  var lines = src.split('\\n');
-  var text = (lines[step.line-1] || '').trim();
-  return text || ('Line ' + step.line);
+
+  var swapHere = swapEvents[stepIdx];
+  if (swapHere) {
+    var arrNow = step.locals[swapHere.name];
+    if (arrNow && arrNow.items) {
+      return {
+        text: 'Swapped ' + swapHere.name + '[' + swapHere.pair[0] + '] and ' + swapHere.name + '[' + swapHere.pair[1] + '] → now ' + arrNow.items[swapHere.pair[0]] + ' and ' + arrNow.items[swapHere.pair[1]],
+        kind: 'swap'
+      };
+    }
+  }
+
+  var lineText = (src.split('\\n')[step.line-1] || '').trim();
+
+  var cmp = lineText.match(/([a-zA-Z_]\\w*)\\s*\\[([^\\]]+)\\]\\s*(>=|<=|==|!=|>|<)\\s*([a-zA-Z_]\\w*)\\s*\\[([^\\]]+)\\]/);
+  if (cmp) {
+    var arrName = cmp[1], idxExprA = cmp[2], op = cmp[3], idxExprB = cmp[5];
+    var arrEntry = step.locals[arrName];
+    if (arrEntry && arrEntry.items) {
+      var idxA = resolveIndexExpr(idxExprA, step.locals);
+      var idxB = resolveIndexExpr(idxExprB, step.locals);
+      if (idxA != null && idxB != null && arrEntry.items[idxA] !== undefined && arrEntry.items[idxB] !== undefined) {
+        return {
+          text: 'Comparing ' + arrName + '[' + idxA + ']=' + arrEntry.items[idxA] + ' ' + op + ' ' + arrName + '[' + idxB + ']=' + arrEntry.items[idxB],
+          kind: 'compare'
+        };
+      }
+    }
+  }
+
+  var forMatch = lineText.match(/^for\\s+(\\w+)\\s+in\\s+/);
+  if (forMatch && stepIdx > 0) {
+    var loopVar = forMatch[1];
+    var lv = step.locals[loopVar];
+    if (lv) return { text: 'Loop check — ' + loopVar + ' = ' + lv.r, kind: 'loop' };
+  }
+
+  return { text: lineText || ('Line ' + step.line), kind: 'line' };
 }
 
 var steps = computeSteps(trace);
+var swapEvents = precomputeSwaps();
 var currentStep = 0;
 var playing = false;
 var playTimer = null;
@@ -379,12 +495,15 @@ function makeDraggable(card, name) {
   document.addEventListener('mouseup', function() { dragging = false; });
 }
 
+var ICON = { int:'#', float:'~', str:'❝', bool:'◑', none:'∅', fn:'ƒ', method:'ƒ', list:'▤', tuple:'▤', dict:'▥', obj:'●' };
+
 function buildScalarCard(name, entry) {
   var card = document.createElement('div');
   card.className = 'var-card';
   applyPosition(card, name);
+  var icon = ICON[entry.k] || ICON.obj;
   card.innerHTML =
-    '<div class="vc-head">'+esc(name)+': '+entry.k+'<span class="vc-close">×</span></div>' +
+    '<div class="vc-head"><span>'+icon+' '+esc(name)+': '+entry.k+'</span><span class="vc-close">×</span></div>' +
     '<div class="vc-val" style="color:'+kindColor(entry.k)+'">'+esc(shortLabel(entry))+'</div>';
   makeDraggable(card, name);
   return card;
@@ -400,20 +519,55 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
   var boxes = items.map(function(val, idx) {
     var changed = prevItems[idx] !== undefined && prevItems[idx] !== val;
     var hl = highlighted.has(idx);
-    return '<div class="arr-box'+(changed?' arr-changed':'')+(hl?' arr-hl':'')+'">' +
+    return '<div class="arr-box'+(changed?' arr-changed':'')+(hl?' arr-hl':'')+'" data-arr-key="'+esc(name)+':'+idx+'">' +
       '<span class="arr-idx">'+idx+'</span>' +
       '<span class="arr-val">'+esc(val)+'</span>' +
       '</div>';
   }).join('');
   card.innerHTML =
-    '<div class="vc-head">'+esc(name)+': '+entry.k+'['+items.length+']<span class="vc-close">×</span></div>' +
+    '<div class="vc-head"><span>' + ICON.list + ' ' + esc(name)+': '+entry.k+'['+items.length+']</span><span class="vc-close">×</span></div>' +
     '<div class="arr-row">'+boxes+'</div>';
   makeDraggable(card, name);
   return card;
 }
 
+// FLIP animation: measures a box's position at its OLD screen location (captured before the
+// DOM was rebuilt) versus where it landed after rebuild, then animates the visual delta away
+// so a swapped box appears to physically slide into its new slot instead of snapping there.
+function flipBox(boxEl, oldRect) {
+  if (!boxEl || !oldRect) return;
+  var newRect = boxEl.getBoundingClientRect();
+  var dx = oldRect.left - newRect.left;
+  var dy = oldRect.top - newRect.top;
+  if (!dx && !dy) return;
+  boxEl.style.transition = 'none';
+  boxEl.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  boxEl.classList.add('arr-swapping');
+  // force a reflow so the browser commits the start position before we animate to the end
+  boxEl.getBoundingClientRect();
+  requestAnimationFrame(function() {
+    boxEl.style.transition = 'transform 0.32s cubic-bezier(.22,.85,.32,1)';
+    boxEl.style.transform = 'translate(0,0)';
+  });
+  setTimeout(function() {
+    boxEl.classList.remove('arr-swapping');
+    boxEl.style.transition = '';
+    boxEl.style.transform = '';
+  }, 360);
+}
+
 function renderCanvas(stepIdx, step) {
   var canvas = document.getElementById('anim-canvas');
+
+  // FLIP "First": capture current on-screen positions of every array box before the DOM
+  // is rebuilt for this step, so swapped boxes can be animated sliding from old to new.
+  var oldRects = {};
+  var existingBoxes = canvas.querySelectorAll('.arr-box');
+  for (var bi = 0; bi < existingBoxes.length; bi++) {
+    var key = existingBoxes[bi].getAttribute('data-arr-key');
+    if (key) oldRects[key] = existingBoxes[bi].getBoundingClientRect();
+  }
+
   canvas.innerHTML = '';
   var names = Object.keys(step.locals).filter(function(nm){ return !hiddenCards.has(nm); });
   if (!names.length) {
@@ -432,6 +586,18 @@ function renderCanvas(stepIdx, step) {
     .forEach(function(nm) {
       canvas.appendChild(buildScalarCard(nm, step.locals[nm]));
     });
+
+  // FLIP "Last + Invert + Play": if this exact step is where a pending swap resolved
+  // (see precomputeSwaps), slide the two boxes from their old screen positions into their
+  // new ones instead of letting the values just snap to their new spots.
+  var swapHere = swapEvents[stepIdx];
+  if (swapHere && names.indexOf(swapHere.name) !== -1) {
+    var keyA = swapHere.name + ':' + swapHere.pair[0], keyB = swapHere.name + ':' + swapHere.pair[1];
+    var boxA = canvas.querySelector('[data-arr-key="' + keyA + '"]');
+    var boxB = canvas.querySelector('[data-arr-key="' + keyB + '"]');
+    flipBox(boxA, oldRects[keyB]);
+    flipBox(boxB, oldRects[keyA]);
+  }
 }
 
 function renderVarsPanel(step) {
@@ -445,15 +611,51 @@ function renderVarsPanel(step) {
   }).join('');
 }
 
+// A compact timeline of every step as a small colored dot (colored by step kind), so the
+// whole run's shape is visible at a glance and any step is one click away. Capped at 150
+// steps to stay readable and avoid layout cost on very long traces; longer traces fall back
+// to the gradient scrubber bar only.
+var STEP_DOT_LIMIT = 150;
+var stepDotEls = [];
+
+function buildStepDots() {
+  var el = document.getElementById('step-dots');
+  if (!steps.length || steps.length > STEP_DOT_LIMIT) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  var html = '';
+  for (var i = 0; i < steps.length; i++) {
+    var obs = observeStep(i);
+    html += '<span class="step-dot step-dot-' + obs.kind + '" data-step-idx="' + i + '" title="' + esc(obs.text) + '"></span>';
+  }
+  el.innerHTML = html;
+  stepDotEls = Array.prototype.slice.call(el.querySelectorAll('.step-dot'));
+  stepDotEls.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      setStep(parseInt(dot.getAttribute('data-step-idx'), 10));
+    });
+  });
+}
+
+function renderStepDots(n) {
+  if (!stepDotEls.length) return;
+  for (var i = 0; i < stepDotEls.length; i++) {
+    stepDotEls[i].classList.toggle('active', i === n);
+  }
+  if (stepDotEls[n]) stepDotEls[n].scrollIntoView({ inline: 'center', block: 'nearest' });
+}
+
+var BADGE_LABEL = { call:'CALL', return:'RETURN', line:'LINE', swap:'SWAP', compare:'COMPARE', loop:'LOOP' };
+
 function renderStep(n) {
   if (!steps.length) return;
   var step = steps[n];
+  var obs = observeStep(n);
 
   var badge = document.getElementById('step-badge');
-  badge.textContent = step.type === 'call' ? 'CALL' : step.type === 'return' ? 'RETURN' : 'LINE';
-  badge.className = step.type === 'call' ? 'call' : step.type === 'return' ? 'ret' : 'line';
+  badge.textContent = BADGE_LABEL[obs.kind] || 'LINE';
+  badge.className = obs.kind;
 
-  document.getElementById('step-desc').textContent = stepDesc(step);
+  document.getElementById('step-desc').textContent = obs.text;
   document.getElementById('step-count-text').textContent = (n+1) + ' / ' + steps.length;
   document.getElementById('prog-fill').style.width = ((n+1)/steps.length*100)+'%';
   document.getElementById('btn-prev').disabled = (n === 0);
@@ -463,6 +665,7 @@ function renderStep(n) {
   renderBreadcrumb(step);
   renderCanvas(n, step);
   renderVarsPanel(step);
+  renderStepDots(n);
 }
 
 function setStep(n) {
@@ -701,6 +904,7 @@ if (tree.length) {
 if (steps.length) {
   document.getElementById('btn-play').disabled = false;
   document.getElementById('btn-next').disabled = false;
+  buildStepDots();
   renderStep(0);
 } else {
   document.getElementById('stack-breadcrumb').innerHTML = '<span style="opacity:0.3">No function calls traced</span>';

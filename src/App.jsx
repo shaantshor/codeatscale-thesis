@@ -7,6 +7,23 @@ import './App.css'
 
 const SLOW_RUN_MS = 12000
 
+// Resizable pane bounds (percentages) and localStorage keys for persisting user-dragged sizes.
+const EDITOR_PCT_MIN = 22
+const EDITOR_PCT_MAX = 80
+const CONSOLE_PCT_MIN = 12
+const CONSOLE_PCT_MAX = 85
+const LS_EDITOR_PCT = 'cas_editorWidthPct'
+const LS_CONSOLE_PCT = 'cas_consoleHeightPct'
+
+function readStoredPct(key, fallback, min, max) {
+  try {
+    const raw = localStorage.getItem(key)
+    const n = raw !== null ? parseFloat(raw) : NaN
+    if (!isNaN(n) && n >= min && n <= max) return n
+  } catch (_) {}
+  return fallback
+}
+
 function App() {
   const [language, setLanguage] = useState('python')
   const [code, setCode] = useState(LANGUAGES['python'].starterCode)
@@ -17,14 +34,71 @@ function App() {
   const [hasRun, setHasRun] = useState(false)
   const [slowWarning, setSlowWarning] = useState(false)
   const [runStats, setRunStats] = useState(null)
+  const [editorWidthPct, setEditorWidthPct] = useState(
+    () => readStoredPct(LS_EDITOR_PCT, 60, EDITOR_PCT_MIN, EDITOR_PCT_MAX)
+  )
+  const [consoleHeightPct, setConsoleHeightPct] = useState(
+    () => readStoredPct(LS_CONSOLE_PCT, 44, CONSOLE_PCT_MIN, CONSOLE_PCT_MAX)
+  )
+  const [draggingAxis, setDraggingAxis] = useState(null) // 'col' | 'row' | null
 
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
   const slowTimerRef = useRef(null)
   const codeRef = useRef(LANGUAGES['python'].starterCode)
   const handleRunRef = useRef(null)
+  const appBodyRef = useRef(null)
+  const outputPaneRef = useRef(null)
 
   codeRef.current = code
+
+  function startColResize(e) {
+    e.preventDefault()
+    setDraggingAxis('col')
+    const body = appBodyRef.current
+    function onMove(ev) {
+      if (!body) return
+      const rect = body.getBoundingClientRect()
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      const clamped = Math.min(EDITOR_PCT_MAX, Math.max(EDITOR_PCT_MIN, pct))
+      setEditorWidthPct(clamped)
+    }
+    function onUp() {
+      setDraggingAxis(null)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setEditorWidthPct(current => {
+        try { localStorage.setItem(LS_EDITOR_PCT, String(current)) } catch (_) {}
+        return current
+      })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  function startRowResize(e) {
+    e.preventDefault()
+    setDraggingAxis('row')
+    const pane = outputPaneRef.current
+    function onMove(ev) {
+      if (!pane) return
+      const rect = pane.getBoundingClientRect()
+      const pct = ((ev.clientY - rect.top) / rect.height) * 100
+      const clamped = Math.min(CONSOLE_PCT_MAX, Math.max(CONSOLE_PCT_MIN, pct))
+      setConsoleHeightPct(clamped)
+    }
+    function onUp() {
+      setDraggingAxis(null)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setConsoleHeightPct(current => {
+        try { localStorage.setItem(LS_CONSOLE_PCT, String(current)) } catch (_) {}
+        return current
+      })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   useEffect(() => {
     function handleIframeMessage(event) {
@@ -360,8 +434,8 @@ body{
         </div>
       )}
 
-      <div className="app-body">
-        <div className="editor-pane">
+      <div className={`app-body${draggingAxis ? ' is-dragging' : ''}`} ref={appBodyRef}>
+        <div className="editor-pane" style={{ width: `${editorWidthPct}%` }}>
           <CodeEditor
             value={code}
             onChange={setCode}
@@ -369,8 +443,14 @@ body{
           />
         </div>
 
-        <div className="output-pane">
-          <div className="console-section">
+        <div
+          className={`pane-resizer pane-resizer-col${draggingAxis === 'col' ? ' dragging' : ''}`}
+          onMouseDown={startColResize}
+          title="Drag to resize"
+        />
+
+        <div className="output-pane" ref={outputPaneRef}>
+          <div className="console-section" style={{ height: `${consoleHeightPct}%` }}>
             <div className="section-header">
               <span className="section-label">Console</span>
               {hasRun && (
@@ -391,6 +471,12 @@ body{
               {error && <pre className="output-error">{error}</pre>}
             </div>
           </div>
+
+          <div
+            className={`pane-resizer pane-resizer-row${draggingAxis === 'row' ? ' dragging' : ''}`}
+            onMouseDown={startRowResize}
+            title="Drag to resize"
+          />
 
           <div className="visual-section">
             <div className="section-header">

@@ -167,8 +167,16 @@ body {
   min-height: 0;
 }
 
+.app-body.is-dragging {
+  user-select: none;
+}
+
+.app-body.is-dragging .visual-iframe {
+  pointer-events: none;
+}
+
 .editor-pane {
-  flex: 3;
+  flex: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -183,8 +191,65 @@ body {
   border: none;
 }
 
+.pane-resizer {
+  flex-shrink: 0;
+  background: transparent;
+  position: relative;
+  z-index: 5;
+}
+
+.pane-resizer::after {
+  content: '';
+  position: absolute;
+  background: var(--border);
+  transition: background 0.15s;
+}
+
+.pane-resizer-col {
+  width: 9px;
+  margin-left: -4px;
+  margin-right: -5px;
+  cursor: col-resize;
+}
+
+.pane-resizer-col::after {
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.pane-resizer-col:hover::after,
+.pane-resizer-col.dragging::after {
+  background: var(--accent);
+  width: 2px;
+  left: 3.5px;
+}
+
+.pane-resizer-row {
+  height: 9px;
+  margin-top: -4px;
+  margin-bottom: -5px;
+  cursor: row-resize;
+}
+
+.pane-resizer-row::after {
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+}
+
+.pane-resizer-row:hover::after,
+.pane-resizer-row.dragging::after {
+  background: var(--accent);
+  height: 2px;
+  top: 3.5px;
+}
+
 .output-pane {
-  flex: 2;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--console-bg);
@@ -193,18 +258,18 @@ body {
 }
 
 .console-section {
-  flex: 4;
+  flex: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-bottom: 2px solid rgba(255,255,255,0.06);
 }
 
 .visual-section {
-  flex: 5;
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 .section-header {
