@@ -25,9 +25,23 @@ export const LANGUAGES = {
       { type: 'module' }
     ),
     starterCode: `# CodeAtScale — Python playground
-# Code runs entirely in your browser via Pyodide (WebAssembly)
+# Try dragging the num_times slider or editing the name in the Visual pane!
 
-print("Hello from the browser!")
+def repeat(num_times):
+    def decorator_repeat(func):
+        def wrapper(*args, **kwargs):
+            result = None
+            for _ in range(num_times):
+                result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator_repeat
+
+@repeat(num_times=3)
+def greet(name):
+    print(f"Hello, {name}!")
+
+greet("Alice")
 `,
   },
 

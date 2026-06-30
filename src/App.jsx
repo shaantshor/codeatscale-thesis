@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import CodeEditor from './components/CodeEditor'
 import { LANGUAGES } from './config/languages'
 import { buildIframeSrcdoc } from './utils/iframeRunner'
+import { buildTraceSrcdoc } from './utils/traceVisualizer'
 import './App.css'
 
 const SLOW_RUN_MS = 12000
@@ -20,11 +21,16 @@ function App() {
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
   const slowTimerRef = useRef(null)
+  const codeRef = useRef(LANGUAGES['python'].starterCode)
+  const handleRunRef = useRef(null)
+
+  codeRef.current = code
 
   useEffect(() => {
     function handleIframeMessage(event) {
-      const { type, line } = event.data || {}
+      const { type } = event.data || {}
       if (!type) return
+      const { line } = event.data
       if (type === 'stdout') setOutput(prev => prev ? prev + '\n' + line : line)
       if (type === 'stderr') setError(prev => prev ? prev + '\n' + line : line)
       if (type === 'error')  setError(prev => prev ? prev + '\n' + line : line)
@@ -33,6 +39,15 @@ function App() {
         setSlowWarning(false)
         setIsRunning(false)
         setHasRun(true)
+      }
+      if (type === 'code_patch') {
+        const { from, to } = event.data
+        if (!from || to === undefined || from === to) return
+        const newCode = codeRef.current.replace(from, to)
+        if (newCode === codeRef.current) return
+        codeRef.current = newCode
+        setCode(newCode)
+        handleRunRef.current?.(newCode)
       }
     }
     window.addEventListener('message', handleIframeMessage)
@@ -61,8 +76,9 @@ function App() {
     return workers.get(langId)
   }
 
-  async function handleRun() {
+  async function handleRun(codeOverride) {
     if (isRunning) return
+    const codeToRun = codeOverride !== undefined ? codeOverride : codeRef.current
     setIsRunning(true)
     setOutput('')
     setError('')
@@ -81,7 +97,7 @@ function App() {
 
       const result = await new Promise(resolve => {
         pendingRef.current.set(id, resolve)
-        worker.postMessage({ id, code })
+        worker.postMessage({ id, code: codeToRun })
       })
       const durationMs = Math.round(performance.now() - startTime)
 
@@ -95,7 +111,7 @@ function App() {
       setHasRun(true)
 
     } else if (entry.executionMode === 'iframe') {
-      const srcdoc = buildIframeSrcdoc(code)
+      const srcdoc = buildIframeSrcdoc(codeToRun)
       setVisual({ type: '__iframe__', data: srcdoc })
 
     } else if (entry.executionMode === 'worker+iframe') {
@@ -105,7 +121,7 @@ function App() {
 
       const result = await new Promise(resolve => {
         pendingRef.current.set(id, resolve)
-        worker.postMessage({ id, code })
+        worker.postMessage({ id, code: codeToRun })
       })
       const durationMs = Math.round(performance.now() - startTime)
 
@@ -127,9 +143,12 @@ function App() {
     }
   }
 
+  handleRunRef.current = handleRun
+
   function handleReset() {
     const entry = LANGUAGES[language]
     setCode(entry.starterCode)
+    codeRef.current = entry.starterCode
     setOutput('')
     setError('')
     setVisual(null)
@@ -151,6 +170,7 @@ function App() {
     const entry = LANGUAGES[newLang]
     setLanguage(newLang)
     setCode(entry.starterCode)
+    codeRef.current = entry.starterCode
     setOutput('')
     setError('')
     setVisual(null)
@@ -160,6 +180,7 @@ function App() {
 
   function buildVisualSrcdoc(v) {
     if (!v) return ''
+    if (v.type === 'trace') return buildTraceSrcdoc(v.data, v.code)
     if (v.type === 'svg') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1e1e2e;}
@@ -313,7 +334,7 @@ body{
           <button className="btn-reset" onClick={handleReset} disabled={isRunning}>
             Reset
           </button>
-          <button className="btn-run" onClick={handleRun} disabled={isRunning}>
+          <button className="btn-run" onClick={() => handleRun()} disabled={isRunning}>
             {isRunning
               ? <><span className="spinner" />Running</>
               : '▶ Run'
