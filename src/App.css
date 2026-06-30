@@ -175,6 +175,11 @@ body {
   pointer-events: none;
 }
 
+.app-body:not(.is-dragging) .editor-pane,
+.app-body:not(.is-dragging) .console-section {
+  transition: width 0.28s cubic-bezier(.22,.8,.32,1), height 0.28s cubic-bezier(.22,.8,.32,1);
+}
+
 .editor-pane {
   flex: none;
   display: flex;
@@ -182,6 +187,10 @@ body {
   overflow: hidden;
   border-right: 1px solid var(--border);
   min-width: 0;
+}
+
+.app-body.trace-active .console-section {
+  border-bottom: 2px solid rgba(255,255,255,0.1);
 }
 
 .editor-pane .cm-editor-wrap,

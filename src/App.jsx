@@ -8,12 +8,19 @@ import './App.css'
 const SLOW_RUN_MS = 12000
 
 // Resizable pane bounds (percentages) and localStorage keys for persisting user-dragged sizes.
-const EDITOR_PCT_MIN = 22
+// Trace mode (the Python step-debugger animation) gets its own remembered sizes, separate from
+// normal mode, since it needs the editor and console to get out of the way and hand most of the
+// screen to the animation canvas — closer to the reference debugger's source+animation layout.
+const EDITOR_PCT_MIN = 14
 const EDITOR_PCT_MAX = 80
-const CONSOLE_PCT_MIN = 12
+const CONSOLE_PCT_MIN = 6
 const CONSOLE_PCT_MAX = 85
 const LS_EDITOR_PCT = 'cas_editorWidthPct'
 const LS_CONSOLE_PCT = 'cas_consoleHeightPct'
+const LS_EDITOR_PCT_TRACE = 'cas_editorWidthPctTrace'
+const LS_CONSOLE_PCT_TRACE = 'cas_consoleHeightPctTrace'
+const TRACE_EDITOR_PCT_DEFAULT = 26
+const TRACE_CONSOLE_PCT_DEFAULT = 9
 
 function readStoredPct(key, fallback, min, max) {
   try {
@@ -49,13 +56,33 @@ function App() {
   const handleRunRef = useRef(null)
   const appBodyRef = useRef(null)
   const outputPaneRef = useRef(null)
+  const prevTraceActiveRef = useRef(false)
 
   codeRef.current = code
+
+  const isTraceActive = !!(visual && visual.type === 'trace')
+
+  // Trace mode hands most of the screen to the animation: shrink the editor and collapse the
+  // console down to a thin strip the moment a trace result appears, and restore whatever sizes
+  // were in use before as soon as the user leaves trace mode (switches language, runs non-trace
+  // code, etc). Each mode remembers its own sizes across sessions via separate localStorage keys.
+  useEffect(() => {
+    if (isTraceActive === prevTraceActiveRef.current) return
+    prevTraceActiveRef.current = isTraceActive
+    if (isTraceActive) {
+      setEditorWidthPct(readStoredPct(LS_EDITOR_PCT_TRACE, TRACE_EDITOR_PCT_DEFAULT, EDITOR_PCT_MIN, EDITOR_PCT_MAX))
+      setConsoleHeightPct(readStoredPct(LS_CONSOLE_PCT_TRACE, TRACE_CONSOLE_PCT_DEFAULT, CONSOLE_PCT_MIN, CONSOLE_PCT_MAX))
+    } else {
+      setEditorWidthPct(readStoredPct(LS_EDITOR_PCT, 60, EDITOR_PCT_MIN, EDITOR_PCT_MAX))
+      setConsoleHeightPct(readStoredPct(LS_CONSOLE_PCT, 44, CONSOLE_PCT_MIN, CONSOLE_PCT_MAX))
+    }
+  }, [isTraceActive])
 
   function startColResize(e) {
     e.preventDefault()
     setDraggingAxis('col')
     const body = appBodyRef.current
+    const traceAtDragStart = isTraceActive
     function onMove(ev) {
       if (!body) return
       const rect = body.getBoundingClientRect()
@@ -68,7 +95,7 @@ function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       setEditorWidthPct(current => {
-        try { localStorage.setItem(LS_EDITOR_PCT, String(current)) } catch (_) {}
+        try { localStorage.setItem(traceAtDragStart ? LS_EDITOR_PCT_TRACE : LS_EDITOR_PCT, String(current)) } catch (_) {}
         return current
       })
     }
@@ -80,6 +107,7 @@ function App() {
     e.preventDefault()
     setDraggingAxis('row')
     const pane = outputPaneRef.current
+    const traceAtDragStart = isTraceActive
     function onMove(ev) {
       if (!pane) return
       const rect = pane.getBoundingClientRect()
@@ -92,7 +120,7 @@ function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       setConsoleHeightPct(current => {
-        try { localStorage.setItem(LS_CONSOLE_PCT, String(current)) } catch (_) {}
+        try { localStorage.setItem(traceAtDragStart ? LS_CONSOLE_PCT_TRACE : LS_CONSOLE_PCT, String(current)) } catch (_) {}
         return current
       })
     }
@@ -434,7 +462,10 @@ body{
         </div>
       )}
 
-      <div className={`app-body${draggingAxis ? ' is-dragging' : ''}`} ref={appBodyRef}>
+      <div
+        className={`app-body${draggingAxis ? ' is-dragging' : ''}${isTraceActive ? ' trace-active' : ''}`}
+        ref={appBodyRef}
+      >
         <div className="editor-pane" style={{ width: `${editorWidthPct}%` }}>
           <CodeEditor
             value={code}
