@@ -13,7 +13,9 @@ const pyodideReady = (async () => {
   return pyodide
 })()
 
-const TRACER_SETUP = `
+// Tracer runs in the SAME runPythonAsync call as user code so sys.settrace persists.
+// Filtered to user code only: <exec>/<string> filenames, skips _ and <...> names.
+const TRACER_PREFIX = `
 import sys as _sys
 import json as _json
 
@@ -26,7 +28,7 @@ def _tracer(frame, event, arg):
     if filename not in ('<exec>', '<string>'):
         return None
     fname = frame.f_code.co_name
-    if fname.startswith('_'):
+    if fname.startswith('_') or fname.startswith('<'):
         return None
     if event in ('call', 'return'):
         loc = {}
@@ -49,6 +51,10 @@ def _tracer(frame, event, arg):
 _sys.settrace(_tracer)
 `
 
+const TRACER_SUFFIX = `
+_sys.settrace(None)
+`
+
 self.onmessage = async ({ data: { id, code } }) => {
   let pyodide
   try {
@@ -68,9 +74,8 @@ self.onmessage = async ({ data: { id, code } }) => {
   stderrLines = []
 
   try {
-    await pyodide.runPythonAsync(TRACER_SETUP)
-    await pyodide.runPythonAsync(code)
-    await pyodide.runPythonAsync('_sys.settrace(None)')
+    // Run tracer setup + user code + cleanup in ONE call so sys.settrace persists.
+    await pyodide.runPythonAsync(TRACER_PREFIX + '\n' + code + '\n' + TRACER_SUFFIX)
     const traceJson = await pyodide.runPythonAsync('_json.dumps(_trace_log)')
 
     self.postMessage({
