@@ -59,6 +59,17 @@ function App() {
     return () => { for (const w of workers.values()) w.terminate() }
   }, [])
 
+  useEffect(() => {
+    function onKeyDown(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleRunRef.current?.()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   function getOrCreateWorker(langId) {
     const workers = workersRef.current
     if (!workers.has(langId)) {

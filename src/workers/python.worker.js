@@ -14,8 +14,11 @@ const pyodideReady = (async () => {
 })()
 
 // Tracer runs in the SAME runPythonAsync call as user code so sys.settrace persists.
-// Filtered to user code only: <exec>/<string> filenames, skips _ and <...> names.
-const TRACER_PREFIX = `
+// No filename filter: Pyodide's co_filename for exec'd code is NOT '<exec>' or '<string>',
+// so the filename check was silently dropping all frames. We rely on name-based filters only:
+// skip functions whose name starts with '_' (internal) or '<' (module, lambda, listcomp).
+// _LINE_OFF is injected at runtime so frame.f_lineno values are user-code-relative.
+const TRACER_SETUP = `
 import sys as _sys
 import json as _json
 
@@ -23,9 +26,6 @@ _trace_log = []
 
 def _tracer(frame, event, arg):
     if len(_trace_log) >= 150:
-        return None
-    filename = frame.f_code.co_filename
-    if filename not in ('<exec>', '<string>'):
         return None
     fname = frame.f_code.co_name
     if fname.startswith('_') or fname.startswith('<'):
@@ -42,7 +42,7 @@ def _tracer(frame, event, arg):
         _trace_log.append({
             'event': event,
             'func': fname,
-            'line': frame.f_lineno,
+            'line': max(1, frame.f_lineno - _LINE_OFF),
             'locals': loc,
             'ret': (repr(arg)[:80] if arg is not None else None) if event == 'return' else None
         })
@@ -51,7 +51,7 @@ def _tracer(frame, event, arg):
 _sys.settrace(_tracer)
 `
 
-const TRACER_SUFFIX = `
+const TRACER_CLEANUP = `
 _sys.settrace(None)
 `
 
@@ -74,8 +74,13 @@ self.onmessage = async ({ data: { id, code } }) => {
   stderrLines = []
 
   try {
-    // Run tracer setup + user code + cleanup in ONE call so sys.settrace persists.
-    await pyodide.runPythonAsync(TRACER_PREFIX + '\n' + code + '\n' + TRACER_SUFFIX)
+    // Compute line offset: count lines before user code in the combined script.
+    // Using a placeholder value keeps the line count stable regardless of the actual number.
+    const beforeUser = `_LINE_OFF = 0\n` + TRACER_SETUP + '\n'
+    const lineOff = beforeUser.split('\n').length - 1
+    const fullCode = `_LINE_OFF = ${lineOff}\n` + TRACER_SETUP + '\n' + code + '\n' + TRACER_CLEANUP
+
+    await pyodide.runPythonAsync(fullCode)
     const traceJson = await pyodide.runPythonAsync('_json.dumps(_trace_log)')
     const hasTrace = traceJson !== '[]'
 
