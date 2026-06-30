@@ -77,13 +77,14 @@ self.onmessage = async ({ data: { id, code } }) => {
     // Run tracer setup + user code + cleanup in ONE call so sys.settrace persists.
     await pyodide.runPythonAsync(TRACER_PREFIX + '\n' + code + '\n' + TRACER_SUFFIX)
     const traceJson = await pyodide.runPythonAsync('_json.dumps(_trace_log)')
+    const hasTrace = traceJson !== '[]'
 
     self.postMessage({
       id,
       stdout: stdoutLines.join('\n'),
       stderr: stderrLines.join('\n'),
       error: null,
-      visual: { type: 'trace', data: traceJson, code },
+      visual: hasTrace ? { type: 'trace', data: traceJson, code } : null,
     })
   } catch (runErr) {
     try { await pyodide.runPythonAsync('_sys.settrace(None)') } catch (_) {}

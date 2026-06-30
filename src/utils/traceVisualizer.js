@@ -122,13 +122,13 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
     <div id="step-view">
       <div id="step-header">
         <div id="step-badge" class="call">CALL</div>
-        <div id="step-desc">Run your code to begin</div>
+        <div id="step-desc">Step through your code below</div>
         <div id="step-counter-line">
-          <span id="step-count-text">0 / 0</span>
+          <span id="step-count-text">- / -</span>
           <div id="prog-bar"><div id="prog-fill" style="width:0%"></div></div>
         </div>
       </div>
-      <div id="stack-scroll"><div class="no-stack-msg">Press Play or click Next to step through execution</div></div>
+      <div id="stack-scroll"><div class="no-stack-msg">Press &#9654; Next or Play to walk through the execution call-by-call</div></div>
       <div id="step-controls">
         <div id="ctrl-row">
           <button class="ctrl-btn" id="btn-prev" onclick="prevStep()" disabled>&#9664; Prev</button>
