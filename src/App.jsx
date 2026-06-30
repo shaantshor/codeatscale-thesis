@@ -4,9 +4,6 @@ import { LANGUAGES } from './config/languages'
 import { buildIframeSrcdoc } from './utils/iframeRunner'
 import './App.css'
 
-// Pyodide has no cancellation API — terminating the Web Worker mid-run would
-// corrupt its internal WASM state and is banned by project rules. Instead we
-// surface a UI warning after SLOW_RUN_MS and let the worker finish naturally.
 const SLOW_RUN_MS = 12000
 
 function App() {
@@ -14,23 +11,16 @@ function App() {
   const [code, setCode] = useState(LANGUAGES['python'].starterCode)
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
-  const [visual, setVisual] = useState(null)   // { type, data } | null
-  const [activeTab, setActiveTab] = useState('console') // 'console' | 'visual'
+  const [visual, setVisual] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
   const [hasRun, setHasRun] = useState(false)
   const [slowWarning, setSlowWarning] = useState(false)
   const [runStats, setRunStats] = useState(null)
 
-  // workersRef: Map<langId, Worker> — workers are instantiated lazily on first use
-  // and kept alive so Pyodide/WebR/etc. don't reload on every run.
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
   const slowTimerRef = useRef(null)
-  // iframeRef: ref to the visual iframe element used for iframe-mode execution
-  const iframeRef = useRef(null)
 
-  // Wire up postMessage listener for iframe-mode languages (JavaScript, Java, etc.)
-  // Messages arrive as { type: 'stdout'|'stderr'|'error'|'done', line }
   useEffect(() => {
     function handleIframeMessage(event) {
       const { type, line } = event.data || {}
@@ -49,12 +39,9 @@ function App() {
     return () => window.removeEventListener('message', handleIframeMessage)
   }, [])
 
-  // Terminate all workers on unmount
   useEffect(() => {
     const workers = workersRef.current
-    return () => {
-      for (const w of workers.values()) w.terminate()
-    }
+    return () => { for (const w of workers.values()) w.terminate() }
   }, [])
 
   function getOrCreateWorker(langId) {
@@ -102,25 +89,16 @@ function App() {
       setSlowWarning(false)
       setOutput(result.stdout || '')
       setError([result.stderr, result.error].filter(Boolean).join('\n'))
-      if (result.visual) {
-        setVisual(result.visual)
-        setActiveTab('visual')
-      }
+      if (result.visual) setVisual(result.visual)
       setRunStats({ durationMs })
       setIsRunning(false)
       setHasRun(true)
 
     } else if (entry.executionMode === 'iframe') {
-      // iframe-mode (JavaScript): route execution through the visual iframe so users
-      // can see DOM output in the Visual tab. Console stdout/stderr still arrive via
-      // postMessage. isRunning / hasRun resolved by the 'done' postMessage.
       const srcdoc = buildIframeSrcdoc(code)
       setVisual({ type: '__iframe__', data: srcdoc })
-      setActiveTab('visual')
 
     } else if (entry.executionMode === 'worker+iframe') {
-      // worker+iframe (TypeScript): worker transpiles TS → JS, then we run the JS
-      // output in the visual iframe exactly like iframe-mode JavaScript.
       const worker = getOrCreateWorker(language)
       const id = crypto.randomUUID()
       const startTime = performance.now()
@@ -131,12 +109,10 @@ function App() {
       })
       const durationMs = Math.round(performance.now() - startTime)
 
-      // Show compile-time diagnostics and/or load errors in Console stderr
       const errText = [result.error, result.stderr].filter(Boolean).join('\n')
       if (errText) setError(errText)
 
       if (!result.jsOutput) {
-        // Compiler failed to load or threw — nothing to run
         clearTimeout(slowTimerRef.current)
         setSlowWarning(false)
         setRunStats({ durationMs })
@@ -145,12 +121,9 @@ function App() {
         return
       }
 
-      // Record compile time; iframe execution time is not separately tracked
       setRunStats({ durationMs })
       const srcdoc = buildIframeSrcdoc(result.jsOutput)
       setVisual({ type: '__iframe__', data: srcdoc })
-      setActiveTab('visual')
-      // isRunning stays true until 'done' postMessage arrives from the visual iframe
     }
   }
 
@@ -163,7 +136,14 @@ function App() {
     setHasRun(false)
     setRunStats(null)
     setSlowWarning(false)
-    setActiveTab('console')
+  }
+
+  function handleClear() {
+    setOutput('')
+    setError('')
+    setVisual(null)
+    setHasRun(false)
+    setRunStats(null)
   }
 
   function handleLanguageChange(e) {
@@ -176,32 +156,24 @@ function App() {
     setVisual(null)
     setHasRun(false)
     setRunStats(null)
-    setActiveTab('console')
   }
 
-  // Build the srcdoc for the visual iframe from the visual payload
   function buildVisualSrcdoc(v) {
     if (!v) return ''
     if (v.type === 'svg') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1e1e2e;}
 svg{max-width:100%;height:auto;}</style></head>
 <body>${v.data}</body></html>`
     }
     if (v.type === 'png') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1e1e2e;}
 img{max-width:100%;height:auto;}</style></head>
 <body><img src="data:image/png;base64,${v.data}"></body></html>`
     }
-    if (v.type === 'html') {
-      return v.data
-    }
-    // __iframe__: the data IS the srcdoc — used for iframe-mode languages (JS, TS)
-    // where the runner iframe is the visual output itself
-    if (v.type === '__iframe__') {
-      return v.data
-    }
+    if (v.type === 'html') return v.data
+    if (v.type === '__iframe__') return v.data
     if (v.type === 'table') {
       let rows
       try { rows = JSON.parse(v.data) } catch { rows = [] }
@@ -214,15 +186,101 @@ img{max-width:100%;height:auto;}</style></head>
       }).join('<br>')
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:#1a1a2e;background:#fff;}
+body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:#cdd6f4;background:#1e1e2e;}
 table{border-collapse:collapse;width:100%;}
-th,td{border:1px solid #e2e6ea;padding:6px 10px;text-align:left;}
-th{background:#f7f8fa;font-weight:600;}
-tr:nth-child(even) td{background:#fafafa;}
+th,td{border:1px solid rgba(255,255,255,0.1);padding:6px 10px;text-align:left;}
+th{background:rgba(255,255,255,0.06);font-weight:600;}
+tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
 </style></head>
 <body>${tables}</body></html>`
     }
     return ''
+  }
+
+  function buildDefaultVisualSrcdoc(stdout, stderr, stats) {
+    const hasError = !!stderr
+    const statusColor = hasError ? '#f38ba8' : '#a6e3a1'
+    const statusLabel = hasError ? 'Error' : 'Execution complete'
+    const timeLabel = stats ? `${stats.durationMs} ms` : ''
+
+    const escape = s => s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+
+    const stdoutBlock = stdout
+      ? `<pre class="out stdout">${escape(stdout)}</pre>` : ''
+    const stderrBlock = stderr
+      ? `<pre class="out stderr">${escape(stderr)}</pre>` : ''
+    const emptyBlock = !stdout && !stderr
+      ? `<p class="empty">No output produced</p>` : ''
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#1e1e2e;
+  color:#cdd6f4;
+  font-family:system-ui,-apple-system,sans-serif;
+  font-size:13px;
+  padding:12px;
+  height:100vh;
+  overflow-y:auto;
+}
+.card{
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;
+  overflow:hidden;
+}
+.card-header{
+  background:rgba(255,255,255,0.04);
+  padding:8px 12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.dot{
+  width:8px;height:8px;border-radius:50%;
+  background:${statusColor};flex-shrink:0;
+}
+.label{
+  font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.5px;
+  color:${statusColor};
+}
+.time{
+  margin-left:auto;font-size:11px;
+  color:rgba(255,255,255,0.28);
+  font-variant-numeric:tabular-nums;
+}
+.card-body{
+  padding:12px;
+  font-family:'Fira Code','Cascadia Code',Menlo,monospace;
+  font-size:13px;line-height:1.65;
+}
+.out{white-space:pre-wrap;word-break:break-word;}
+.stdout{color:#a6e3a1;}
+.stderr{color:#f38ba8;margin-top:8px;}
+.empty{color:rgba(255,255,255,0.2);font-style:italic;font-family:system-ui;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="dot"></div>
+    <span class="label">${statusLabel}</span>
+    ${timeLabel ? `<span class="time">${timeLabel}</span>` : ''}
+  </div>
+  <div class="card-body">
+    ${stdoutBlock}${stderrBlock}${emptyBlock}
+  </div>
+</div>
+</body>
+</html>`
   }
 
   const currentEntry = LANGUAGES[language]
@@ -280,39 +338,13 @@ tr:nth-child(even) td{background:#fafafa;}
         </div>
 
         <div className="output-pane">
-          <div className="output-header">
-            <div className="output-tabs">
-              <button
-                className={`output-tab${activeTab === 'console' ? ' active' : ''}`}
-                onClick={() => setActiveTab('console')}
-              >
-                Console
-              </button>
-              <button
-                className={`output-tab${activeTab === 'visual' ? ' active' : ''}${visual ? ' has-visual' : ''}`}
-                onClick={() => setActiveTab('visual')}
-              >
-                Visual
-              </button>
+          <div className="console-section">
+            <div className="section-header">
+              <span className="section-label">Console</span>
+              {hasRun && (
+                <button className="btn-clear-output" onClick={handleClear}>Clear</button>
+              )}
             </div>
-            {hasRun && (
-              <button
-                className="btn-clear-output"
-                onClick={() => {
-                  setOutput('')
-                  setError('')
-                  setVisual(null)
-                  setHasRun(false)
-                  setRunStats(null)
-                  setActiveTab('console')
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {activeTab === 'console' && (
             <div className="output-body">
               {!hasRun && !isRunning && (
                 <p className="output-placeholder">Click ▶ Run to execute your code</p>
@@ -326,12 +358,15 @@ tr:nth-child(even) td{background:#fafafa;}
               {output && <pre className="output-stdout">{output}</pre>}
               {error && <pre className="output-error">{error}</pre>}
             </div>
-          )}
+          </div>
 
-          {activeTab === 'visual' && (
+          <div className="visual-section">
+            <div className="section-header">
+              <span className="section-label">Visual</span>
+            </div>
             <div className="visual-body">
-              {!visual && !isRunning && (
-                <p className="output-placeholder">No visual output — use plt.show() or return a visual payload</p>
+              {!hasRun && !isRunning && !visual && (
+                <p className="output-placeholder">Run code to see visual output</p>
               )}
               {isRunning && !visual && (
                 <p className="output-placeholder">Running…</p>
@@ -344,19 +379,16 @@ tr:nth-child(even) td{background:#fafafa;}
                   title="Visual output"
                 />
               )}
+              {!visual && hasRun && !isRunning && (
+                <iframe
+                  className="visual-iframe"
+                  sandbox="allow-scripts"
+                  srcDoc={buildDefaultVisualSrcdoc(output, error, runStats)}
+                  title="Execution summary"
+                />
+              )}
             </div>
-          )}
-
-          {/* Hidden iframe used for iframe-mode language execution (JS, Java, etc.)
-              It is always mounted so the postMessage listener can receive messages.
-              srcdoc is set programmatically in handleRun. */}
-          <iframe
-            ref={iframeRef}
-            className="runner-iframe"
-            sandbox="allow-scripts"
-            title="Code runner"
-            srcDoc=""
-          />
+          </div>
         </div>
       </div>
     </div>
