@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import CodeEditor from './components/CodeEditor'
 import { LANGUAGES } from './config/languages'
-import { buildIframeSrcdoc } from './utils/iframeRunner'
+import { buildIframeSrcdoc, buildTraceableIframeSrcdoc } from './utils/iframeRunner'
 import { buildTraceSrcdoc } from './utils/traceVisualizer'
+import { instrumentForTrace } from './utils/jsInstrumenter'
 import './App.css'
 
 const SLOW_RUN_MS = 12000
@@ -58,6 +59,10 @@ function App() {
   const appBodyRef = useRef(null)
   const outputPaneRef = useRef(null)
   const prevTraceActiveRef = useRef(false)
+  // Source shown by the trace debugger for the run currently in flight. Decoupled from codeRef
+  // (which tracks live edits) so a js_trace message that lands after the user has already
+  // started editing again still describes the code that actually produced it.
+  const traceRunCodeRef = useRef('')
 
   codeRef.current = code
 
@@ -155,6 +160,19 @@ function App() {
       if (type === 'trace_line') {
         setTraceLine(event.data.line || null)
       }
+      if (type === 'js_trace') {
+        const { frames, truncated } = event.data
+        // Upgrade the Visual pane from the raw iframe view to the same step-debugger UI
+        // Python uses, once a trace actually came back. Empty frames (functions defined but
+        // never called) leave the raw output visible instead of switching to an empty debugger.
+        if (frames && frames.length > 0) {
+          setVisual({
+            type: 'trace',
+            data: JSON.stringify({ frames, truncated }),
+            code: traceRunCodeRef.current,
+          })
+        }
+      }
     }
     window.addEventListener('message', handleIframeMessage)
     return () => window.removeEventListener('message', handleIframeMessage)
@@ -229,7 +247,15 @@ function App() {
       setHasRun(true)
 
     } else if (entry.executionMode === 'iframe') {
-      const srcdoc = buildIframeSrcdoc(codeToRun)
+      // Try to instrument the code so the Python-style step debugger can render it too; the
+      // raw output iframe still runs either way (instrumentation only adds trace calls around
+      // the user's own statements, it never changes what the code does), so console output and
+      // any DOM effects work exactly as before regardless of whether instrumentation succeeds.
+      const attempt = instrumentForTrace(codeToRun)
+      traceRunCodeRef.current = codeToRun
+      const srcdoc = attempt.ok
+        ? buildTraceableIframeSrcdoc(attempt.instrumented)
+        : buildIframeSrcdoc(codeToRun)
       setVisual({ type: '__iframe__', data: srcdoc })
 
     } else if (entry.executionMode === 'worker+iframe') {
@@ -256,7 +282,16 @@ function App() {
       }
 
       setRunStats({ durationMs })
-      const srcdoc = buildIframeSrcdoc(result.jsOutput)
+      // Instrument the TRANSPILED output (Acorn can't parse TS syntax directly). Trace line
+      // numbers are therefore relative to the transpiled JS, not the original .ts source — for
+      // straightforward code transpileModule keeps them aligned, but multi-line type-only
+      // declarations can shift lines. Documented limitation: see highlightLine below, which is
+      // deliberately not wired to the real editor for TypeScript because of this same gap.
+      const attempt = instrumentForTrace(result.jsOutput)
+      traceRunCodeRef.current = attempt.ok ? result.jsOutput : codeToRun
+      const srcdoc = attempt.ok
+        ? buildTraceableIframeSrcdoc(attempt.instrumented)
+        : buildIframeSrcdoc(result.jsOutput)
       setVisual({ type: '__iframe__', data: srcdoc })
     }
   }
@@ -479,7 +514,12 @@ body{
             value={code}
             onChange={setCode}
             language={language}
-            highlightLine={isTraceActive ? traceLine : null}
+            // TypeScript's trace runs against transpiled JS, whose line numbers aren't
+            // guaranteed to match the original .ts source shown here (multi-line type
+            // declarations can shift things), so highlighting is skipped for that language to
+            // avoid pointing at the wrong line. Python and JavaScript trace 1:1 against what's
+            // in the editor, so both highlight normally.
+            highlightLine={isTraceActive && language !== 'typescript' ? traceLine : null}
           />
         </div>
 

@@ -55,17 +55,28 @@ greet("Alice")
     // by intercepting console.log and posting messages to the parent via postMessage.
     executionMode: 'iframe',
     cmLang: () => import('@codemirror/lang-javascript').then(m => m.javascript()),
+    // Function-wrapped so the step-debugger trace (same DAP-style animation as Python) has
+    // something to show — an AST instrumenter (src/utils/jsInstrumenter.js) statically injects
+    // trace calls into code inside functions before it runs. Top-level code without a function
+    // still runs natively with full DOM access, it just won't produce a step trace.
     starterCode: `// JavaScript — runs natively in your browser (no WASM, zero cold-start)
+// Wrapped in a function so the Visual pane can step through it, just like Python.
 
-console.log("Hello from JavaScript!")
+function bubbleSort(arr) {
+  const n = arr.length
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        const temp = arr[j]
+        arr[j] = arr[j + 1]
+        arr[j + 1] = temp
+      }
+    }
+  }
+  return arr
+}
 
-// Full DOM access — render anything in the Visual tab:
-document.body.style.margin = '24px'
-document.body.style.fontFamily = 'system-ui, sans-serif'
-document.body.innerHTML = \`
-  <h2 style="color:#2d6a4f">Hello from the Visual tab!</h2>
-  <p>JavaScript runs directly in a sandboxed iframe — no server, no WASM.</p>
-\`
+console.log(bubbleSort([5, 2, 1, 4, 3]))
 `,
   },
 
@@ -85,18 +96,26 @@ document.body.innerHTML = \`
       new URL('../workers/typescript.worker.js', import.meta.url),
       { type: 'module' }
     ),
+    // The trace debugger instruments the TRANSPILED JS (Acorn doesn't understand TS syntax),
+    // so it's function-wrapped like the JS starter to give it something to step through.
     starterCode: `// TypeScript — transpiled client-side by the TypeScript compiler (no server)
+// Wrapped in a function so the Visual pane can step through it after types are stripped.
 
-const greet = (name: string): string => \`Hello, \${name}!\`
-console.log(greet("browser"))
+function bubbleSort(arr: number[]): number[] {
+  const n: number = arr.length
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        const temp: number = arr[j]
+        arr[j] = arr[j + 1]
+        arr[j + 1] = temp
+      }
+    }
+  }
+  return arr
+}
 
-const add = (a: number, b: number): number => a + b
-console.log("2 + 3 =", add(2, 3))
-
-// Types are stripped at runtime — the transpiled JS runs in a sandboxed iframe
-interface Point { x: number; y: number }
-const origin: Point = { x: 0, y: 0 }
-console.log("Origin:", JSON.stringify(origin))
+console.log(bubbleSort([5, 2, 1, 4, 3]))
 `,
   },
 }
