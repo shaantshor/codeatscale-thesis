@@ -82,21 +82,23 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 }
 .canvas-empty{color:rgba(255,255,255,0.2);font-style:italic;font-size:13px;padding:20px;width:100%;text-align:center;}
 
-@keyframes frame-enter{from{opacity:0.3;transform:translateY(-4px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
-.var-card{background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.09);border-radius:9px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.2s ease-out;box-shadow:0 4px 18px rgba(0,0,0,0.22);backdrop-filter:blur(2px);}
-.vc-head{font-size:10.5px;color:rgba(255,255,255,0.42);background:rgba(255,255,255,0.035);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);letter-spacing:0.2px;}
-.vc-close{cursor:pointer;opacity:0.35;font-size:12px;padding:0 2px;}
+/* Card look leans toward the reference video's pastel-lavender "sticky note" cards: a solid
+   tinted purple fill rather than the near-invisible translucent panel used before, plus a
+   small bounce on entry so a new card visibly pops onto the canvas instead of just fading in. */
+@keyframes frame-enter{0%{opacity:0;transform:translateY(-6px) scale(0.85);}70%{opacity:1;transform:translateY(1px) scale(1.03);}100%{opacity:1;transform:translateY(0) scale(1);}}
+.var-card{background:rgba(203,166,247,0.1);border:1px solid rgba(203,166,247,0.35);border-radius:10px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.32s cubic-bezier(.34,1.4,.5,1);box-shadow:0 6px 20px rgba(0,0,0,0.28);}
+.vc-head{font-size:10.5px;color:rgba(255,255,255,0.65);background:rgba(203,166,247,0.22);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(203,166,247,0.25);letter-spacing:0.2px;}
+.vc-close{cursor:pointer;opacity:0.4;font-size:12px;padding:0 2px;}
 .vc-close:hover{opacity:0.9;}
 .vc-val{padding:12px 10px;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
 
 .arr-card{width:auto;max-width:100%;}
-.arr-card .vc-head{background:linear-gradient(90deg,rgba(250,179,135,0.12),rgba(255,255,255,0.02));}
 .arr-row{display:flex;padding:12px;gap:6px;overflow-x:auto;}
-.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
-.arr-idx{font-size:9px;color:rgba(255,255,255,0.25);}
-.arr-val{font-size:16px;font-weight:600;color:#cdd6f4;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
-.arr-box.arr-changed{background:rgba(166,227,161,0.2);border-color:rgba(166,227,161,0.55);animation:box-pulse 0.4s ease;}
-.arr-box.arr-hl{border-color:#cba6f7;box-shadow:0 0 0 1px rgba(203,166,247,0.45),0 0 16px rgba(203,166,247,0.3);}
+.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(203,166,247,0.12);border:1px solid rgba(203,166,247,0.3);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
+.arr-idx{font-size:9px;color:rgba(255,255,255,0.35);}
+.arr-val{font-size:16px;font-weight:600;color:#f5f0ff;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
+.arr-box.arr-changed{background:rgba(166,227,161,0.28);border-color:rgba(166,227,161,0.65);animation:box-pulse 0.5s ease;}
+.arr-box.arr-hl{border-color:#f9e2af;box-shadow:0 0 0 1px rgba(249,226,175,0.5),0 0 16px rgba(249,226,175,0.3);}
 @keyframes box-pulse{0%{transform:scale(1.25);}100%{transform:scale(1);}}
 
 #vars-panel{width:clamp(150px,14%,260px);flex-shrink:0;border-left:1px solid rgba(255,255,255,0.07);overflow-y:auto;display:flex;flex-direction:column;}
@@ -120,20 +122,29 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 #flow-view{flex:1;display:none;flex-direction:column;overflow:hidden;}
 #flow-view.visible{display:flex;}
-#flow-scroll{flex:1;overflow-y:auto;padding:10px;}
-.tile{border:1px solid rgba(255,255,255,0.07);border-left:3px solid;border-radius:0 5px 5px 0;padding:6px 10px;margin-bottom:3px;transition:background 0.1s;}
-.tile.clickable{cursor:pointer;}
-.tile.clickable:hover{background:rgba(255,255,255,0.04);}
-.t-row{display:flex;align-items:center;gap:7px;}
-.t-ev{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;width:28px;flex-shrink:0;}
-.t-fn{font-family:'Fira Code',Consolas,monospace;font-size:13px;font-weight:600;}
-.t-arrow{font-size:9px;color:rgba(255,255,255,0.2);margin-left:2px;transition:transform 0.15s;display:inline-block;}
-.tile.open .t-arrow{transform:rotate(90deg);}
-.t-ret{margin-left:auto;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.28);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.t-ln{font-size:10px;color:rgba(255,255,255,0.18);white-space:nowrap;margin-left:4px;}
-.t-locals{display:none;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.05);font-family:monospace;font-size:11px;line-height:1.8;}
-.tile.open .t-locals{display:block;}
-.tl-k{color:rgba(255,255,255,0.38);}
+#flow-scroll{flex:1;overflow:auto;padding:22px;}
+
+/* Mindmap-style call tree: each node is a floating card connected to its parent by a dashed
+   line, children laid out in a vertical trunk to the right of the parent (classic file-tree /
+   org-chart CSS pattern). No layout engine needed, just border + ::before connector lines, so
+   it stays as robust as the rest of the rewrite. */
+.tree-root{display:flex;flex-direction:column;gap:14px;}
+.tree-item{position:relative;}
+.tree-children{margin-left:26px;padding-left:22px;border-left:1.5px dashed rgba(203,166,247,0.25);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
+.tree-children .tree-item::before{content:'';position:absolute;left:-22px;top:19px;width:20px;height:0;border-top:1.5px dashed rgba(203,166,247,0.25);}
+
+.node-box{display:inline-block;border:1px solid rgba(255,255,255,0.1);border-left:3px solid;border-radius:8px;padding:8px 12px;background:rgba(255,255,255,0.035);box-shadow:0 3px 10px rgba(0,0,0,0.18);transition:background 0.12s,transform 0.12s;}
+.node-box.clickable{cursor:pointer;}
+.node-box.clickable:hover{background:rgba(255,255,255,0.07);transform:translateY(-1px);}
+.t-row{display:flex;align-items:center;gap:8px;}
+.t-fn{font-family:'Fira Code',Consolas,monospace;font-size:13px;font-weight:700;}
+.t-arrow{font-size:9px;color:rgba(255,255,255,0.25);transition:transform 0.15s;display:inline-block;}
+.node-box.open .t-arrow{transform:rotate(90deg);}
+.t-ret{font-family:monospace;font-size:11px;color:rgba(255,255,255,0.32);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.t-ln{font-size:10px;color:rgba(255,255,255,0.2);white-space:nowrap;}
+.t-locals{display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.07);font-family:monospace;font-size:11px;line-height:1.8;}
+.node-box.open .t-locals{display:block;}
+.tl-k{color:rgba(255,255,255,0.4);}
 
 .empty-state{padding:24px 12px;text-align:center;color:rgba(255,255,255,0.2);font-size:12px;font-style:italic;line-height:1.8;}
 </style>
@@ -185,10 +196,10 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
           <button class="ctrl-btn" id="btn-play" disabled>&#9654; Play</button>
           <button class="ctrl-btn" id="btn-next" disabled>Next &#9654;</button>
           <select id="speed-select" title="Speed">
-            <option value="900">0.5x</option>
-            <option value="500" selected>1x</option>
-            <option value="280">2x</option>
-            <option value="100">4x</option>
+            <option value="2400">0.5x</option>
+            <option value="1400" selected>1x</option>
+            <option value="800">2x</option>
+            <option value="400">4x</option>
           </select>
         </div>
         <div class="kbd-hint">
@@ -199,7 +210,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
     <div id="flow-view">
       <div class="ph"><span>Call Tree</span><span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(255,255,255,0.14);">click a tile to inspect locals</span></div>
-      <div id="flow-scroll"><div id="call-tree"></div></div>
+      <div id="flow-scroll"><div id="call-tree" class="tree-root"></div></div>
     </div>
   </div>
 
@@ -671,33 +682,48 @@ function buildTree(frames) {
   return root.children;
 }
 
+// Builds one mindmap branch: a .tree-item holding this node's card (.node-box) followed by a
+// .tree-children wrapper (only present if this node has children) recursed into for the next
+// level. The CSS connector lines (border-left on .tree-children, ::before on each child
+// .tree-item) draw themselves from this nesting, so no coordinate math is needed here.
 function renderTree(nodes, container) {
   for (var i = 0; i < nodes.length; i++) {
     var n = nodes[i];
     var c = col(n.func);
-    var tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.style.borderLeftColor = c;
-    tile.style.marginLeft = (n.depth*14)+'px';
+
+    var item = document.createElement('div');
+    item.className = 'tree-item';
+
+    var box = document.createElement('div');
+    box.className = 'node-box';
+    box.style.borderLeftColor = c;
+
     var locEntries = Object.keys(n.locals).map(function(k){ return [k, n.locals[k]]; });
-    if (locEntries.length) tile.classList.add('clickable');
+    if (locEntries.length) box.classList.add('clickable');
     var locHtml = locEntries.map(function(kv) {
       return '<div><span class="tl-k">' + esc(kv[0]) + '</span> = <span style="color:' + kindColor(kv[1].k) + '">' + esc(shortLabel(kv[1])) + '</span></div>';
     }).join('');
-    tile.innerHTML =
+    box.innerHTML =
       '<div class="t-row">' +
-        '<span class="t-ev" style="color:'+c+'">call</span>' +
-        '<span class="t-fn" style="color:'+c+'">' + esc(n.func) + '</span>' +
+        '<span class="t-fn" style="color:'+c+'">' + esc(n.func) + '()</span>' +
         (locEntries.length ? '<span class="t-arrow">&#9654;</span>' : '') +
-        (n.ret ? '<span class="t-ret">→ ' + esc(shortLabel(n.ret).slice(0,20)) + '</span>' : '') +
         '<span class="t-ln">:' + n.line + '</span>' +
+        (n.ret ? '<span class="t-ret">→ ' + esc(shortLabel(n.ret).slice(0,20)) + '</span>' : '') +
       '</div>' +
       (locEntries.length ? '<div class="t-locals">' + locHtml + '</div>' : '');
     if (locEntries.length) {
-      tile.addEventListener('click', (function(el){ return function(){ el.classList.toggle('open'); }; })(tile));
+      box.addEventListener('click', (function(el){ return function(){ el.classList.toggle('open'); }; })(box));
     }
-    container.appendChild(tile);
-    if (n.children.length) renderTree(n.children, container);
+    item.appendChild(box);
+
+    if (n.children.length) {
+      var childWrap = document.createElement('div');
+      childWrap.className = 'tree-children';
+      renderTree(n.children, childWrap);
+      item.appendChild(childWrap);
+    }
+
+    container.appendChild(item);
   }
 }
 
