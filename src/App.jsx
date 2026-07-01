@@ -19,8 +19,8 @@ const LS_EDITOR_PCT = 'cas_editorWidthPct'
 const LS_CONSOLE_PCT = 'cas_consoleHeightPct'
 const LS_EDITOR_PCT_TRACE = 'cas_editorWidthPctTrace'
 const LS_CONSOLE_PCT_TRACE = 'cas_consoleHeightPctTrace'
-const TRACE_EDITOR_PCT_DEFAULT = 26
-const TRACE_CONSOLE_PCT_DEFAULT = 9
+const TRACE_EDITOR_PCT_DEFAULT = 34
+const TRACE_CONSOLE_PCT_DEFAULT = 8
 
 function readStoredPct(key, fallback, min, max) {
   try {
@@ -48,6 +48,7 @@ function App() {
     () => readStoredPct(LS_CONSOLE_PCT, 44, CONSOLE_PCT_MIN, CONSOLE_PCT_MAX)
   )
   const [draggingAxis, setDraggingAxis] = useState(null) // 'col' | 'row' | null
+  const [traceLine, setTraceLine] = useState(null) // active line reported by the trace iframe
 
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
@@ -151,6 +152,9 @@ function App() {
         setCode(newCode)
         handleRunRef.current?.(newCode)
       }
+      if (type === 'trace_line') {
+        setTraceLine(event.data.line || null)
+      }
     }
     window.addEventListener('message', handleIframeMessage)
     return () => window.removeEventListener('message', handleIframeMessage)
@@ -196,6 +200,7 @@ function App() {
     setOutput('')
     setError('')
     setVisual(null)
+    setTraceLine(null)
     setSlowWarning(false)
     setRunStats(null)
     setHasRun(false)
@@ -265,6 +270,7 @@ function App() {
     setOutput('')
     setError('')
     setVisual(null)
+    setTraceLine(null)
     setHasRun(false)
     setRunStats(null)
     setSlowWarning(false)
@@ -274,6 +280,7 @@ function App() {
     setOutput('')
     setError('')
     setVisual(null)
+    setTraceLine(null)
     setHasRun(false)
     setRunStats(null)
   }
@@ -287,6 +294,7 @@ function App() {
     setOutput('')
     setError('')
     setVisual(null)
+    setTraceLine(null)
     setHasRun(false)
     setRunStats(null)
   }
@@ -471,6 +479,7 @@ body{
             value={code}
             onChange={setCode}
             language={language}
+            highlightLine={isTraceActive ? traceLine : null}
           />
         </div>
 

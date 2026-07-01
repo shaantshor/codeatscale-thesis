@@ -1,19 +1,32 @@
 import { useEffect, useRef } from 'react'
-import { EditorView, keymap, lineNumbers } from '@codemirror/view'
+import { EditorView, keymap, lineNumbers, Decoration } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { LANGUAGES } from '../config/languages'
 import './CodeEditor.css'
 
-// Two Compartments:
-//   editableCompartment  — toggles EditorView.editable (readOnly prop)
-//   languageCompartment  — swaps the CM6 language extension when language prop changes
-// Both are module-level because they must be stable references across renders.
+// Three Compartments:
+//   editableCompartment   — toggles EditorView.editable (readOnly prop)
+//   languageCompartment   — swaps the CM6 language extension when language prop changes
+//   highlightCompartment  — applies a single line-highlight decoration for highlightLine
+// All module-level because they must be stable references across renders.
 const editableCompartment = new Compartment()
 const languageCompartment = new Compartment()
+const highlightCompartment = new Compartment()
 
-export default function CodeEditor({ value, onChange, readOnly = false, language = 'python' }) {
+// Builds the line-highlight decoration extension for a given 1-based line number. Returns
+// [] (no decoration) when lineNum is null/out of range — used to clear the highlight, e.g.
+// when the trace visualizer isn't active.
+function buildHighlightExtension(lineNum, doc) {
+  if (!lineNum || lineNum < 1 || lineNum > doc.lines) return []
+  const line = doc.line(lineNum)
+  return EditorView.decorations.of(
+    Decoration.set([Decoration.line({ class: 'cm-traceActiveLine' }).range(line.from)])
+  )
+}
+
+export default function CodeEditor({ value, onChange, readOnly = false, language = 'python', highlightLine = null }) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
 
@@ -30,6 +43,7 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
           oneDark,
           editableCompartment.of(EditorView.editable.of(!readOnly)),
           languageCompartment.of([]),
+          highlightCompartment.of([]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString())
@@ -52,6 +66,21 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
       changes: { from: 0, to: view.state.doc.length, insert: value },
     })
   }, [value])
+
+  // Sync the trace visualizer's active line: reconfigure the highlight decoration and, when
+  // a line is set, scroll it into view so the user always sees what's currently executing
+  // without needing to manually scroll the real editor.
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    const ext = buildHighlightExtension(highlightLine, view.state.doc)
+    const effects = [highlightCompartment.reconfigure(ext)]
+    if (highlightLine && highlightLine >= 1 && highlightLine <= view.state.doc.lines) {
+      const pos = view.state.doc.line(highlightLine).from
+      effects.push(EditorView.scrollIntoView(pos, { y: 'center' }))
+    }
+    view.dispatch({ effects })
+  }, [highlightLine, value])
 
   // Sync readOnly changes
   useEffect(() => {

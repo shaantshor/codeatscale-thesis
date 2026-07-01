@@ -37,6 +37,10 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 .params-tip{font-size:10px;color:rgba(255,255,255,0.14);text-align:center;padding:7px 8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,0.05);line-height:1.6;}
 
 #trunc-banner{display:none;background:rgba(249,226,175,0.12);color:#f9e2af;font-size:11px;padding:6px 12px;border-bottom:1px solid rgba(249,226,175,0.25);flex-shrink:0;}
+#runtime-error{display:none;background:rgba(243,139,168,0.14);color:#f38ba8;font-size:11px;padding:8px 12px;border-bottom:1px solid rgba(243,139,168,0.3);flex-shrink:0;font-family:'Fira Code',Consolas,monospace;white-space:pre-wrap;}
+
+@keyframes canvas-fade{from{opacity:0.45;}to{opacity:1;}}
+.canvas-stepping{animation:canvas-fade 0.16s ease-out;}
 
 #step-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
@@ -66,13 +70,6 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 #main-row{flex:1;display:flex;overflow:hidden;min-height:0;}
 
-#source-panel{width:clamp(230px,23%,520px);flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);overflow-y:auto;padding:10px 0;}
-.src-line{display:flex;align-items:baseline;gap:9px;padding:2.5px 14px;line-height:1.7;border-left:2px solid transparent;transition:background 0.15s,border-color 0.15s;}
-.src-line.src-active{background:linear-gradient(90deg,rgba(137,180,250,0.16),rgba(137,180,250,0.03));border-left:2px solid #89b4fa;box-shadow:inset 0 0 18px rgba(137,180,250,0.12);}
-.src-ln{color:rgba(255,255,255,0.18);min-width:22px;text-align:right;user-select:none;flex-shrink:0;font-size:11px;font-family:'Fira Code',Consolas,monospace;}
-.src-txt{color:rgba(255,255,255,0.45);white-space:pre;font-family:'Fira Code',Consolas,monospace;font-size:12.5px;}
-.src-active .src-txt{color:#eef1fb;text-shadow:0 0 14px rgba(137,180,250,0.35);}
-
 #canvas-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 #stack-breadcrumb{padding:9px 18px;font-size:12px;font-family:'Fira Code',Consolas,monospace;border-bottom:1px solid rgba(255,255,255,0.06);white-space:nowrap;overflow-x:auto;flex-shrink:0;color:rgba(255,255,255,0.5);}
 .bc-sep{color:rgba(255,255,255,0.18);margin:0 6px;}
@@ -87,8 +84,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 @keyframes frame-enter{from{opacity:0.3;transform:translateY(-4px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 .var-card{background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.09);border-radius:9px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.2s ease-out;box-shadow:0 4px 18px rgba(0,0,0,0.22);backdrop-filter:blur(2px);}
-.vc-head{font-size:10.5px;color:rgba(255,255,255,0.42);background:rgba(255,255,255,0.035);padding:7px 10px;cursor:grab;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);letter-spacing:0.2px;}
-.vc-head:active{cursor:grabbing;}
+.vc-head{font-size:10.5px;color:rgba(255,255,255,0.42);background:rgba(255,255,255,0.035);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);letter-spacing:0.2px;}
 .vc-close{cursor:pointer;opacity:0.35;font-size:12px;padding:0 2px;}
 .vc-close:hover{opacity:0.9;}
 .vc-val{padding:12px 10px;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
@@ -97,7 +93,6 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 .arr-card .vc-head{background:linear-gradient(90deg,rgba(250,179,135,0.12),rgba(255,255,255,0.02));}
 .arr-row{display:flex;padding:12px;gap:6px;overflow-x:auto;}
 .arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
-.arr-box.arr-swapping{z-index:8;box-shadow:0 8px 22px rgba(0,0,0,0.45);}
 .arr-idx{font-size:9px;color:rgba(255,255,255,0.25);}
 .arr-val{font-size:16px;font-weight:600;color:#cdd6f4;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
 .arr-box.arr-changed{background:rgba(166,227,161,0.2);border-color:rgba(166,227,161,0.55);animation:box-pulse 0.4s ease;}
@@ -160,6 +155,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
       <button class="mode-btn" id="btn-mode-flow">&#11200; Flow</button>
     </div>
     <div id="trunc-banner">&#9888; Trace truncated at 2000 steps &mdash; this run produced more steps than the visualizer can capture</div>
+    <div id="runtime-error"></div>
 
     <div id="step-view">
       <div id="step-header">
@@ -173,7 +169,6 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
       </div>
 
       <div id="main-row">
-        <div id="source-panel"><div id="code-ctx"></div></div>
         <div id="canvas-wrap">
           <div id="stack-breadcrumb"></div>
           <div id="anim-canvas"></div>
@@ -197,7 +192,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
           </select>
         </div>
         <div class="kbd-hint">
-          <span class="kbd">&#8592;</span> <span class="kbd">&#8594;</span> step &nbsp; <span class="kbd">Space</span> play/pause &nbsp; drag a card's header to move it
+          <span class="kbd">&#8592;</span> <span class="kbd">&#8594;</span> step &nbsp; <span class="kbd">Space</span> play/pause
         </div>
       </div>
     </div>
@@ -383,34 +378,13 @@ var swapEvents = precomputeSwaps();
 var currentStep = 0;
 var playing = false;
 var playTimer = null;
-var activeSrcLine = null;
 var hiddenCards = new Set();
-var draggedPositions = {};
 
-function buildSourceList() {
-  var el = document.getElementById('code-ctx');
-  var lines = src.split('\\n');
-  var html = '';
-  for (var i = 0; i < lines.length; i++) {
-    html += '<div class="src-line" id="src-line-'+(i+1)+'">' +
-      '<span class="src-ln">'+(i+1)+'</span>' +
-      '<span class="src-txt">'+esc(lines[i])+'</span>' +
-      '</div>';
-  }
-  el.innerHTML = html;
-}
-
-function renderSource(lineNum) {
-  if (activeSrcLine) {
-    var prevEl = document.getElementById('src-line-'+activeSrcLine);
-    if (prevEl) prevEl.classList.remove('src-active');
-  }
-  var curEl = document.getElementById('src-line-'+lineNum);
-  if (curEl) {
-    curEl.classList.add('src-active');
-    curEl.scrollIntoView({ block: 'center' });
-  }
-  activeSrcLine = lineNum;
+// There's no source panel inside this view anymore — the real CodeMirror editor on the left
+// IS the source view. Instead of duplicating the code here, every step posts its active line
+// number up to the parent app, which highlights and auto-scrolls that line in the real editor.
+function reportActiveLine(lineNum) {
+  window.parent.postMessage({ type: 'trace_line', line: lineNum || null }, '*');
 }
 
 function renderBreadcrumb(step) {
@@ -449,50 +423,14 @@ function detectHighlightedIndices(lineText, arrName, allLocals) {
   return result;
 }
 
-function applyPosition(card, name) {
-  card.dataset.varName = name;
-  if (draggedPositions[name]) {
-    card.style.position = 'absolute';
-    card.style.left = draggedPositions[name].x + 'px';
-    card.style.top = draggedPositions[name].y + 'px';
-  }
-}
-
-function makeDraggable(card, name) {
+function attachCloseHandler(card, name) {
   var closeBtn = card.querySelector('.vc-close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      hiddenCards.add(name);
-      renderStep(currentStep);
-    });
-  }
-  var head = card.querySelector('.vc-head');
-  var dragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
-  head.addEventListener('mousedown', function(e) {
-    if (e.target.classList.contains('vc-close')) return;
-    dragging = true;
-    var canvas = document.getElementById('anim-canvas');
-    var canvasRect = canvas.getBoundingClientRect();
-    var cardRect = card.getBoundingClientRect();
-    origLeft = cardRect.left - canvasRect.left + canvas.scrollLeft;
-    origTop = cardRect.top - canvasRect.top + canvas.scrollTop;
-    card.style.position = 'absolute';
-    card.style.left = origLeft + 'px';
-    card.style.top = origTop + 'px';
-    card.style.zIndex = 20;
-    startX = e.clientX; startY = e.clientY;
-    e.preventDefault();
+  if (!closeBtn) return;
+  closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    hiddenCards.add(name);
+    renderStep(currentStep);
   });
-  document.addEventListener('mousemove', function(e) {
-    if (!dragging) return;
-    var nx = origLeft + (e.clientX - startX);
-    var ny = origTop + (e.clientY - startY);
-    card.style.left = nx + 'px';
-    card.style.top = ny + 'px';
-    draggedPositions[name] = { x: nx, y: ny };
-  });
-  document.addEventListener('mouseup', function() { dragging = false; });
 }
 
 var ICON = { int:'#', float:'~', str:'❝', bool:'◑', none:'∅', fn:'ƒ', method:'ƒ', list:'▤', tuple:'▤', dict:'▥', obj:'●' };
@@ -500,19 +438,17 @@ var ICON = { int:'#', float:'~', str:'❝', bool:'◑', none:'∅', fn:'ƒ', met
 function buildScalarCard(name, entry) {
   var card = document.createElement('div');
   card.className = 'var-card';
-  applyPosition(card, name);
   var icon = ICON[entry.k] || ICON.obj;
   card.innerHTML =
     '<div class="vc-head"><span>'+icon+' '+esc(name)+': '+entry.k+'</span><span class="vc-close">×</span></div>' +
     '<div class="vc-val" style="color:'+kindColor(entry.k)+'">'+esc(shortLabel(entry))+'</div>';
-  makeDraggable(card, name);
+  attachCloseHandler(card, name);
   return card;
 }
 
 function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
   var card = document.createElement('div');
   card.className = 'var-card arr-card';
-  applyPosition(card, name);
   var highlighted = detectHighlightedIndices(lineText, name, allLocals);
   var items = entry.items || [];
   var prevItems = (prevEntry && prevEntry.items) || [];
@@ -527,46 +463,23 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
   card.innerHTML =
     '<div class="vc-head"><span>' + ICON.list + ' ' + esc(name)+': '+entry.k+'['+items.length+']</span><span class="vc-close">×</span></div>' +
     '<div class="arr-row">'+boxes+'</div>';
-  makeDraggable(card, name);
+  attachCloseHandler(card, name);
   return card;
 }
 
-// FLIP animation: measures a box's position at its OLD screen location (captured before the
-// DOM was rebuilt) versus where it landed after rebuild, then animates the visual delta away
-// so a swapped box appears to physically slide into its new slot instead of snapping there.
-function flipBox(boxEl, oldRect) {
-  if (!boxEl || !oldRect) return;
-  var newRect = boxEl.getBoundingClientRect();
-  var dx = oldRect.left - newRect.left;
-  var dy = oldRect.top - newRect.top;
-  if (!dx && !dy) return;
-  boxEl.style.transition = 'none';
-  boxEl.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-  boxEl.classList.add('arr-swapping');
-  // force a reflow so the browser commits the start position before we animate to the end
-  boxEl.getBoundingClientRect();
-  requestAnimationFrame(function() {
-    boxEl.style.transition = 'transform 0.32s cubic-bezier(.22,.85,.32,1)';
-    boxEl.style.transform = 'translate(0,0)';
-  });
-  setTimeout(function() {
-    boxEl.classList.remove('arr-swapping');
-    boxEl.style.transition = '';
-    boxEl.style.transform = '';
-  }, 360);
-}
-
+// Rebuilds the canvas for this step. Array boxes that changed value since the previous step
+// get a CSS pulse (.arr-changed, defined via @keyframes box-pulse) and a swap between two
+// boxes is called out in the narration (observeStep) rather than physically animated between
+// screen positions — a prior version used getBoundingClientRect-based FLIP animation to slide
+// swapped boxes, but that depends on layout timing that isn't reliable inside a sandboxed
+// iframe (especially while the host app's panes are mid-resize), so it's replaced here with a
+// plain fade-in on the whole canvas (.canvas-stepping) plus the per-box pulse, which is far
+// less likely to silently fail.
 function renderCanvas(stepIdx, step) {
   var canvas = document.getElementById('anim-canvas');
-
-  // FLIP "First": capture current on-screen positions of every array box before the DOM
-  // is rebuilt for this step, so swapped boxes can be animated sliding from old to new.
-  var oldRects = {};
-  var existingBoxes = canvas.querySelectorAll('.arr-box');
-  for (var bi = 0; bi < existingBoxes.length; bi++) {
-    var key = existingBoxes[bi].getAttribute('data-arr-key');
-    if (key) oldRects[key] = existingBoxes[bi].getBoundingClientRect();
-  }
+  canvas.classList.remove('canvas-stepping');
+  void canvas.offsetWidth; // force reflow so the animation restarts on repeated steps
+  canvas.classList.add('canvas-stepping');
 
   canvas.innerHTML = '';
   var names = Object.keys(step.locals).filter(function(nm){ return !hiddenCards.has(nm); });
@@ -586,18 +499,6 @@ function renderCanvas(stepIdx, step) {
     .forEach(function(nm) {
       canvas.appendChild(buildScalarCard(nm, step.locals[nm]));
     });
-
-  // FLIP "Last + Invert + Play": if this exact step is where a pending swap resolved
-  // (see precomputeSwaps), slide the two boxes from their old screen positions into their
-  // new ones instead of letting the values just snap to their new spots.
-  var swapHere = swapEvents[stepIdx];
-  if (swapHere && names.indexOf(swapHere.name) !== -1) {
-    var keyA = swapHere.name + ':' + swapHere.pair[0], keyB = swapHere.name + ':' + swapHere.pair[1];
-    var boxA = canvas.querySelector('[data-arr-key="' + keyA + '"]');
-    var boxB = canvas.querySelector('[data-arr-key="' + keyB + '"]');
-    flipBox(boxA, oldRects[keyB]);
-    flipBox(boxB, oldRects[keyA]);
-  }
 }
 
 function renderVarsPanel(step) {
@@ -648,24 +549,28 @@ var BADGE_LABEL = { call:'CALL', return:'RETURN', line:'LINE', swap:'SWAP', comp
 
 function renderStep(n) {
   if (!steps.length) return;
-  var step = steps[n];
-  var obs = observeStep(n);
+  try {
+    var step = steps[n];
+    var obs = observeStep(n);
 
-  var badge = document.getElementById('step-badge');
-  badge.textContent = BADGE_LABEL[obs.kind] || 'LINE';
-  badge.className = obs.kind;
+    var badge = document.getElementById('step-badge');
+    badge.textContent = BADGE_LABEL[obs.kind] || 'LINE';
+    badge.className = obs.kind;
 
-  document.getElementById('step-desc').textContent = obs.text;
-  document.getElementById('step-count-text').textContent = (n+1) + ' / ' + steps.length;
-  document.getElementById('prog-fill').style.width = ((n+1)/steps.length*100)+'%';
-  document.getElementById('btn-prev').disabled = (n === 0);
-  document.getElementById('btn-next').disabled = (n === steps.length-1);
+    document.getElementById('step-desc').textContent = obs.text;
+    document.getElementById('step-count-text').textContent = (n+1) + ' / ' + steps.length;
+    document.getElementById('prog-fill').style.width = ((n+1)/steps.length*100)+'%';
+    document.getElementById('btn-prev').disabled = (n === 0);
+    document.getElementById('btn-next').disabled = (n === steps.length-1);
 
-  renderSource(step.line);
-  renderBreadcrumb(step);
-  renderCanvas(n, step);
-  renderVarsPanel(step);
-  renderStepDots(n);
+    reportActiveLine(step.line);
+    renderBreadcrumb(step);
+    renderCanvas(n, step);
+    renderVarsPanel(step);
+    renderStepDots(n);
+  } catch (err) {
+    showRuntimeError(err);
+  }
 }
 
 function setStep(n) {
@@ -714,11 +619,13 @@ function setMode(mode) {
     flowView.classList.remove('visible');
     btnStep.classList.add('active');
     btnFlow.classList.remove('active');
+    if (steps.length) reportActiveLine(steps[currentStep].line);
   } else {
     stepView.style.display = 'none';
     flowView.classList.add('visible');
     btnStep.classList.remove('active');
     btnFlow.classList.add('active');
+    reportActiveLine(null); // Flow view has no single "current line" to highlight
   }
 }
 
@@ -881,34 +788,45 @@ function renderParams(params) {
   });
 }
 
-buildSourceList();
-
-if (truncated) {
-  document.getElementById('trunc-banner').style.display = 'block';
+function showRuntimeError(err) {
+  var el = document.getElementById('runtime-error');
+  el.textContent = 'Trace visualizer error: ' + (err && err.message ? err.message : err);
+  el.style.display = 'block';
 }
 
-var params = detectParams(src);
-renderParams(params);
+// Everything below reads the trace and builds the initial view. Wrapped in try/catch so a
+// bug here surfaces as a visible banner instead of silently leaving the pane blank, which is
+// how earlier breakages went unnoticed until manual inspection.
+try {
+  if (truncated) {
+    document.getElementById('trunc-banner').style.display = 'block';
+  }
 
-var crFrames = trace.filter(function(f){ return f.event !== 'line'; });
-var treeEl = document.getElementById('call-tree');
-var tree = buildTree(crFrames);
-if (tree.length) {
-  renderTree(tree, treeEl);
-  var first = treeEl.querySelector('.tile.clickable');
-  if (first) first.classList.add('open');
-} else {
-  treeEl.innerHTML = '<div class="empty-state">No function calls traced.<br>Define and call functions to see the call tree.</div>';
-}
+  var params = detectParams(src);
+  renderParams(params);
 
-if (steps.length) {
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-next').disabled = false;
-  buildStepDots();
-  renderStep(0);
-} else {
-  document.getElementById('stack-breadcrumb').innerHTML = '<span style="opacity:0.3">No function calls traced</span>';
-  document.getElementById('anim-canvas').innerHTML = '<div class="canvas-empty">No function calls traced.<br>Define and call functions to step through them.</div>';
+  var crFrames = trace.filter(function(f){ return f.event !== 'line'; });
+  var treeEl = document.getElementById('call-tree');
+  var tree = buildTree(crFrames);
+  if (tree.length) {
+    renderTree(tree, treeEl);
+    var first = treeEl.querySelector('.tile.clickable');
+    if (first) first.classList.add('open');
+  } else {
+    treeEl.innerHTML = '<div class="empty-state">No function calls traced.<br>Define and call functions to see the call tree.</div>';
+  }
+
+  if (steps.length) {
+    document.getElementById('btn-play').disabled = false;
+    document.getElementById('btn-next').disabled = false;
+    buildStepDots();
+    renderStep(0);
+  } else {
+    document.getElementById('stack-breadcrumb').innerHTML = '<span style="opacity:0.3">No function calls traced</span>';
+    document.getElementById('anim-canvas').innerHTML = '<div class="canvas-empty">No function calls traced.<br>Define and call functions to step through them.</div>';
+  }
+} catch (err) {
+  showRuntimeError(err);
 }
 </script>
 </body>
