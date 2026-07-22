@@ -80,6 +80,32 @@ console.log(bubbleSort([5, 2, 1, 4, 3]))
 `,
   },
 
+  haskell: {
+    id: 'haskell',
+    label: 'Haskell',
+    emoji: 'λ',
+    badge: 'GHC WASM',
+    // Layer A: arbitrary GHC Haskell compiled to WASM32-WASI, runs in browser
+    // via @bjorn3/browser_wasi_shim. Requires self-hosted binary (no public CDN).
+    // Layer B (lazy-step visualizer) is handled in App.jsx via haskellStepper.js
+    // and does not need a WASM binary.
+    // Cold-start is dissertation data — first load downloads the binary.
+    executionMode: 'worker',
+    cmLang: () => Promise.resolve(null), // no CM6 Haskell package available
+    workerFactory: () => new Worker(
+      new URL('../workers/haskell.worker.js', import.meta.url),
+      { type: 'module' }
+    ),
+    // Layer B (mini-interpreter) triggers automatically for pure expressions.
+    // Switch to IO code (main = ...) to use Layer A / GHC WASM instead.
+    starterCode: `-- Layer B: pure expression -- runs in the browser lazy stepper (no binary needed)
+-- Supported: take, map, filter, foldr, foldl, zip, zipWith, iterate, repeat,
+--            arithmetic ranges [n..] / [n..m], let/in, lambda (\\x -> e), if/then/else
+
+take 10 (map (*2) [1..])
+`,
+  },
+
   typescript: {
     id: 'typescript',
     label: 'TypeScript',
