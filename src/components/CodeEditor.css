@@ -18,6 +18,6 @@
    CodeEditor.jsx. Mirrors the accent blue used inside the trace animation panel so the real
    editor and the animation read as one connected view rather than two separate UIs. */
 .cm-editor-wrap .cm-traceActiveLine {
-  background: linear-gradient(90deg, rgba(137,180,250,0.22), rgba(137,180,250,0.04));
-  box-shadow: inset 3px 0 0 0 #89b4fa, inset 0 0 24px rgba(137,180,250,0.1);
+  background: linear-gradient(90deg, rgba(91,143,249,0.22), rgba(91,143,249,0.04));
+  box-shadow: inset 3px 0 0 0 #5b8ff9, inset 0 0 24px rgba(91,143,249,0.1);
 }

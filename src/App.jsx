@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import CodeEditor from './components/CodeEditor'
 import { LANGUAGES } from './config/languages'
 import { buildIframeSrcdoc, buildTraceableIframeSrcdoc } from './utils/iframeRunner'
-import { buildTraceSrcdoc } from './utils/traceVisualizer'
+import { buildTraceSrcdoc, buildHaskellSrcdoc } from './utils/traceVisualizer'
 import { instrumentForTrace } from './utils/jsInstrumenter'
+import { canHandle as haskellCanHandle, stepEval as haskellStepEval } from './utils/haskellStepper'
 import './App.css'
 
 const SLOW_RUN_MS = 12000
@@ -48,8 +49,11 @@ function App() {
   const [consoleHeightPct, setConsoleHeightPct] = useState(
     () => readStoredPct(LS_CONSOLE_PCT, 44, CONSOLE_PCT_MIN, CONSOLE_PCT_MAX)
   )
-  const [draggingAxis, setDraggingAxis] = useState(null) // 'col' | 'row' | null
-  const [traceLine, setTraceLine] = useState(null) // active line reported by the trace iframe
+  const [draggingAxis, setDraggingAxis] = useState(null)
+  const [traceLine, setTraceLine] = useState(null)
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('cas_darkMode') === 'true' } catch { return false }
+  })
 
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
@@ -65,6 +69,11 @@ function App() {
   const traceRunCodeRef = useRef('')
 
   codeRef.current = code
+
+  useEffect(() => {
+    try { localStorage.setItem('cas_darkMode', String(darkMode)) } catch {}
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   const isTraceActive = !!(visual && visual.type === 'trace')
 
@@ -92,7 +101,9 @@ function App() {
     function onMove(ev) {
       if (!body) return
       const rect = body.getBoundingClientRect()
-      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      const available = rect.width - 16 // subtract body padding (8*2); panes are % of this
+      const mouseOffset = ev.clientX - rect.left - 8
+      const pct = (mouseOffset / available) * 100
       const clamped = Math.min(EDITOR_PCT_MAX, Math.max(EDITOR_PCT_MIN, pct))
       setEditorWidthPct(clamped)
     }
@@ -121,6 +132,7 @@ function App() {
       const clamped = Math.min(CONSOLE_PCT_MAX, Math.max(CONSOLE_PCT_MIN, pct))
       setConsoleHeightPct(clamped)
     }
+
     function onUp() {
       setDraggingAxis(null)
       window.removeEventListener('mousemove', onMove)
@@ -136,6 +148,10 @@ function App() {
 
   useEffect(() => {
     function handleIframeMessage(event) {
+      // All our iframes are sandboxed srcdoc documents (opaque origin, serialized as "null").
+      // Anything else (extensions, devtools, HMR) is not for us — code_patch in particular
+      // must never be triggerable by another window.
+      if (event.origin !== 'null') return
       const { type } = event.data || {}
       if (!type) return
       const { line } = event.data
@@ -147,6 +163,14 @@ function App() {
         setSlowWarning(false)
         setIsRunning(false)
         setHasRun(true)
+        // iframe-mode languages (JS/TS): if nothing rendered to the DOM and no trace came in
+        // either, drop the raw __iframe__ visual so the existing "execution complete" default
+        // card (buildDefaultVisualSrcdoc) shows instead of a blank white pane. Using the
+        // functional setState form avoids the stale-closure problem this listener would
+        // otherwise have (it's registered once, in a [] deps effect).
+        if (event.data.bodyEmpty) {
+          setVisual(prev => (prev && prev.type === '__iframe__' ? null : prev))
+        }
       }
       if (type === 'code_patch') {
         const { from, to } = event.data
@@ -180,7 +204,10 @@ function App() {
 
   useEffect(() => {
     const workers = workersRef.current
-    return () => { for (const w of workers.values()) w.terminate() }
+    return () => {
+      for (const w of workers.values()) w.terminate()
+      workers.clear()
+    }
   }, [])
 
   useEffect(() => {
@@ -206,6 +233,14 @@ function App() {
           pendingRef.current.delete(data.id)
         }
       }
+      // Uncaught worker failure (script load error, CDN unreachable) would otherwise leave
+      // every pending run promise unresolved and the Run button stuck on "Running" forever.
+      worker.onerror = (e) => {
+        for (const [id, resolve] of pendingRef.current) {
+          resolve({ id, stdout: '', stderr: '', error: 'Worker error: ' + (e.message || 'failed to load or crashed') })
+        }
+        pendingRef.current.clear()
+      }
       workers.set(langId, worker)
     }
     return workers.get(langId)
@@ -225,6 +260,33 @@ function App() {
 
     const entry = LANGUAGES[language]
     slowTimerRef.current = setTimeout(() => setSlowWarning(true), SLOW_RUN_MS)
+
+    // ── Haskell Layer B intercept ─────────────────────────────────────────────
+    // If the code is a pure mini-Haskell expression (no IO / do / main), run the
+    // client-side lazy stepper instead of the GHC WASM worker. Layer A (full GHC)
+    // is still used whenever canHandle returns false (IO code, data declarations, etc.).
+    if (language === 'haskell' && haskellCanHandle(codeToRun)) {
+      try {
+        const t0 = performance.now()
+        const stepsResult = haskellStepEval(codeToRun, 200)
+        const durationMs = Math.round(performance.now() - t0)
+        clearTimeout(slowTimerRef.current)
+        setSlowWarning(false)
+        setOutput('')
+        setError(stepsResult.error ? 'Lazy stepper: ' + stepsResult.error : '')
+        setVisual({ type: 'haskell-steps', data: JSON.stringify(stepsResult), code: codeToRun })
+        setRunStats({ durationMs })
+        setIsRunning(false)
+        setHasRun(true)
+      } catch (e) {
+        clearTimeout(slowTimerRef.current)
+        setSlowWarning(false)
+        setError('Lazy stepper error: ' + e.message)
+        setIsRunning(false)
+        setHasRun(true)
+      }
+      return
+    }
 
     if (entry.executionMode === 'worker') {
       const worker = getOrCreateWorker(language)
@@ -337,15 +399,16 @@ function App() {
   function buildVisualSrcdoc(v) {
     if (!v) return ''
     if (v.type === 'trace') return buildTraceSrcdoc(v.data, v.code)
+    if (v.type === 'haskell-steps') return buildHaskellSrcdoc(v.data)
     if (v.type === 'svg') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1e1e2e;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a;}
 svg{max-width:100%;height:auto;}</style></head>
 <body>${v.data}</body></html>`
     }
     if (v.type === 'png') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1e1e2e;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a;}
 img{max-width:100%;height:auto;}</style></head>
 <body><img src="data:image/png;base64,${v.data}"></body></html>`
     }
@@ -363,7 +426,7 @@ img{max-width:100%;height:auto;}</style></head>
       }).join('<br>')
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:#cdd6f4;background:#1e1e2e;}
+body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:#eff1f6;background:#1a1a1a;}
 table{border-collapse:collapse;width:100%;}
 th,td{border:1px solid rgba(255,255,255,0.1);padding:6px 10px;text-align:left;}
 th{background:rgba(255,255,255,0.06);font-weight:600;}
@@ -376,7 +439,7 @@ tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
 
   function buildDefaultVisualSrcdoc(stdout, stderr, stats) {
     const hasError = !!stderr
-    const statusColor = hasError ? '#f38ba8' : '#a6e3a1'
+    const statusColor = hasError ? '#ef4743' : '#2cbb5d'
     const statusLabel = hasError ? 'Error' : 'Execution complete'
     const timeLabel = stats ? `${stats.durationMs} ms` : ''
 
@@ -399,8 +462,8 @@ tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
-  background:#1e1e2e;
-  color:#cdd6f4;
+  background:#1a1a1a;
+  color:#eff1f6;
   font-family:system-ui,-apple-system,sans-serif;
   font-size:13px;
   padding:12px;
@@ -440,8 +503,8 @@ body{
   font-size:13px;line-height:1.65;
 }
 .out{white-space:pre-wrap;word-break:break-word;}
-.stdout{color:#a6e3a1;}
-.stderr{color:#f38ba8;margin-top:8px;}
+.stdout{color:#2cbb5d;}
+.stderr{color:#ef4743;margin-top:8px;}
 .empty{color:rgba(255,255,255,0.2);font-style:italic;font-family:system-ui;}
 </style>
 </head>
@@ -477,7 +540,7 @@ body{
           >
             {Object.values(LANGUAGES).map(entry => (
               <option key={entry.id} value={entry.id}>
-                {entry.emoji} {entry.label}
+                {entry.label}
               </option>
             ))}
           </select>
@@ -487,6 +550,9 @@ body{
           {runStats && (
             <span className="run-stats">{runStats.durationMs} ms</span>
           )}
+          <button className="btn-theme" onClick={() => setDarkMode(d => !d)} title="Toggle dark / light mode">
+            {darkMode ? '☀' : '🌙'}
+          </button>
           <button className="btn-reset" onClick={handleReset} disabled={isRunning}>
             Reset
           </button>
@@ -509,17 +575,13 @@ body{
         className={`app-body${draggingAxis ? ' is-dragging' : ''}${isTraceActive ? ' trace-active' : ''}`}
         ref={appBodyRef}
       >
-        <div className="editor-pane" style={{ width: `${editorWidthPct}%` }}>
+        <div className="editor-pane" style={{ width: `calc(${editorWidthPct}% - 3px)` }}>
           <CodeEditor
             value={code}
             onChange={setCode}
             language={language}
-            // TypeScript's trace runs against transpiled JS, whose line numbers aren't
-            // guaranteed to match the original .ts source shown here (multi-line type
-            // declarations can shift things), so highlighting is skipped for that language to
-            // avoid pointing at the wrong line. Python and JavaScript trace 1:1 against what's
-            // in the editor, so both highlight normally.
             highlightLine={isTraceActive && language !== 'typescript' ? traceLine : null}
+            darkMode={darkMode}
           />
         </div>
 
@@ -529,7 +591,7 @@ body{
           title="Drag to resize"
         />
 
-        <div className="output-pane" ref={outputPaneRef}>
+        <div className="output-pane" ref={outputPaneRef} style={{ width: `calc(${100 - editorWidthPct}% - 3px)` }}>
           <div className="console-section" style={{ height: `${consoleHeightPct}%` }}>
             <div className="section-header">
               <span className="section-label">Console</span>

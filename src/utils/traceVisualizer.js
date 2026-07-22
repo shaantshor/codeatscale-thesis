@@ -8,7 +8,7 @@ export function buildTraceSrcdoc(traceJson, code) {
 <meta charset="utf-8">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
 
 #root{display:flex;flex:1;overflow:hidden;}
 #left{width:188px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;overflow:hidden;transition:width 0.15s ease;}
@@ -19,7 +19,7 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 #mode-bar{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
 .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px;}
-.mode-btn.active{background:rgba(203,166,247,0.15);border-color:rgba(203,166,247,0.45);color:#cba6f7;}
+.mode-btn.active{background:rgba(255,161,22,0.15);border-color:rgba(255,161,22,0.45);color:#b39ddb;}
 .mode-btn:hover:not(.active){border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.65);}
 
 .ph{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.25);padding:8px 10px 7px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
@@ -28,16 +28,16 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 .p-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:8px 9px;}
 .p-name{font-size:10px;color:rgba(255,255,255,0.38);margin-bottom:3px;font-weight:500;}
-.p-cur{font-size:18px;font-weight:700;color:#cba6f7;margin-bottom:6px;font-variant-numeric:tabular-nums;line-height:1;}
-.p-range{width:100%;accent-color:#cba6f7;cursor:ew-resize;display:block;margin-bottom:4px;}
-.p-num{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#cdd6f4;font-size:12px;padding:4px 7px;outline:none;display:block;}
-.p-num:focus,.p-str:focus{border-color:rgba(203,166,247,0.55);}
-.p-str{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#cdd6f4;font-size:12px;padding:5px 7px;outline:none;display:block;}
+.p-cur{font-size:18px;font-weight:700;color:#b39ddb;margin-bottom:6px;font-variant-numeric:tabular-nums;line-height:1;}
+.p-range{width:100%;accent-color:#b39ddb;cursor:ew-resize;display:block;margin-bottom:4px;}
+.p-num{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#eff1f6;font-size:12px;padding:4px 7px;outline:none;display:block;}
+.p-num:focus,.p-str:focus{border-color:rgba(255,161,22,0.55);}
+.p-str{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#eff1f6;font-size:12px;padding:5px 7px;outline:none;display:block;}
 .empty-hint{font-size:11px;color:rgba(255,255,255,0.2);font-style:italic;line-height:1.7;padding:2px 0;}
 .params-tip{font-size:10px;color:rgba(255,255,255,0.14);text-align:center;padding:7px 8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,0.05);line-height:1.6;}
 
-#trunc-banner{display:none;background:rgba(249,226,175,0.12);color:#f9e2af;font-size:11px;padding:6px 12px;border-bottom:1px solid rgba(249,226,175,0.25);flex-shrink:0;}
-#runtime-error{display:none;background:rgba(243,139,168,0.14);color:#f38ba8;font-size:11px;padding:8px 12px;border-bottom:1px solid rgba(243,139,168,0.3);flex-shrink:0;font-family:'Fira Code',Consolas,monospace;white-space:pre-wrap;}
+#trunc-banner{display:none;background:rgba(255,192,30,0.12);color:#ffc01e;font-size:11px;padding:6px 12px;border-bottom:1px solid rgba(255,192,30,0.25);flex-shrink:0;}
+#runtime-error{display:none;background:rgba(239,71,67,0.14);color:#ef4743;font-size:11px;padding:8px 12px;border-bottom:1px solid rgba(239,71,67,0.3);flex-shrink:0;font-family:'Fira Code',Consolas,monospace;white-space:pre-wrap;}
 
 @keyframes canvas-fade{from{opacity:0.45;}to{opacity:1;}}
 .canvas-stepping{animation:canvas-fade 0.16s ease-out;}
@@ -46,27 +46,27 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 
 #step-header{padding:9px 12px 7px;flex-shrink:0;}
 #step-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 9px;border-radius:20px;margin-bottom:7px;}
-#step-badge.call{background:rgba(166,227,161,0.15);color:#a6e3a1;border:1px solid rgba(166,227,161,0.3);}
-#step-badge.return{background:rgba(249,226,175,0.15);color:#f9e2af;border:1px solid rgba(249,226,175,0.3);}
-#step-badge.line{background:rgba(137,180,250,0.13);color:#89b4fa;border:1px solid rgba(137,180,250,0.28);}
-#step-badge.swap{background:rgba(243,139,168,0.16);color:#f38ba8;border:1px solid rgba(243,139,168,0.35);box-shadow:0 0 12px rgba(243,139,168,0.25);}
-#step-badge.compare{background:rgba(148,226,213,0.14);color:#94e2d5;border:1px solid rgba(148,226,213,0.3);}
-#step-badge.loop{background:rgba(203,166,247,0.14);color:#cba6f7;border:1px solid rgba(203,166,247,0.3);}
+#step-badge.call{background:rgba(44,187,93,0.15);color:#2cbb5d;border:1px solid rgba(44,187,93,0.3);}
+#step-badge.return{background:rgba(255,192,30,0.15);color:#ffc01e;border:1px solid rgba(255,192,30,0.3);}
+#step-badge.line{background:rgba(91,143,249,0.13);color:#5b8ff9;border:1px solid rgba(91,143,249,0.28);}
+#step-badge.swap{background:rgba(239,71,67,0.16);color:#ef4743;border:1px solid rgba(239,71,67,0.35);box-shadow:0 0 12px rgba(239,71,67,0.25);}
+#step-badge.compare{background:rgba(0,184,163,0.14);color:#00b8a3;border:1px solid rgba(0,184,163,0.3);}
+#step-badge.loop{background:rgba(255,161,22,0.14);color:#b39ddb;border:1px solid rgba(255,161,22,0.3);}
 #step-desc{font-size:13px;font-weight:500;color:rgba(255,255,255,0.82);line-height:1.45;min-height:18px;font-family:'Fira Code',Consolas,monospace;}
 #step-counter-line{display:flex;align-items:center;gap:8px;margin-top:7px;}
 #step-count-text{font-size:10px;color:rgba(255,255,255,0.3);font-variant-numeric:tabular-nums;white-space:nowrap;}
 #prog-bar{flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;cursor:pointer;}
-#prog-fill{height:100%;background:linear-gradient(90deg,#89b4fa,#cba6f7);border-radius:2px;transition:width 0.15s ease;pointer-events:none;}
+#prog-fill{height:100%;background:linear-gradient(90deg,#5b8ff9,#b39ddb);border-radius:2px;transition:width 0.15s ease;pointer-events:none;}
 #step-dots{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;margin-top:8px;padding-bottom:2px;}
 .step-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,0.12);cursor:pointer;transition:transform 0.12s,background 0.12s;}
 .step-dot:hover{transform:scale(1.5);}
-.step-dot.active{transform:scale(1.7);background:#cdd6f4 !important;}
-.step-dot-call{background:rgba(166,227,161,0.45);}
-.step-dot-return{background:rgba(249,226,175,0.45);}
-.step-dot-line{background:rgba(137,180,250,0.3);}
-.step-dot-swap{background:rgba(243,139,168,0.7);}
-.step-dot-compare{background:rgba(148,226,213,0.5);}
-.step-dot-loop{background:rgba(203,166,247,0.5);}
+.step-dot.active{transform:scale(1.7);background:#eff1f6 !important;}
+.step-dot-call{background:rgba(44,187,93,0.45);}
+.step-dot-return{background:rgba(255,192,30,0.45);}
+.step-dot-line{background:rgba(91,143,249,0.3);}
+.step-dot-swap{background:rgba(239,71,67,0.7);}
+.step-dot-compare{background:rgba(0,184,163,0.5);}
+.step-dot-loop{background:rgba(255,161,22,0.5);}
 
 #main-row{flex:1;display:flex;overflow:hidden;min-height:0;}
 
@@ -86,20 +86,33 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
    tinted purple fill rather than the near-invisible translucent panel used before, plus a
    small bounce on entry so a new card visibly pops onto the canvas instead of just fading in. */
 @keyframes frame-enter{0%{opacity:0;transform:translateY(-6px) scale(0.85);}70%{opacity:1;transform:translateY(1px) scale(1.03);}100%{opacity:1;transform:translateY(0) scale(1);}}
-.var-card{background:rgba(203,166,247,0.1);border:1px solid rgba(203,166,247,0.35);border-radius:10px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.32s cubic-bezier(.34,1.4,.5,1);box-shadow:0 6px 20px rgba(0,0,0,0.28);}
-.vc-head{font-size:10.5px;color:rgba(255,255,255,0.65);background:rgba(203,166,247,0.22);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(203,166,247,0.25);letter-spacing:0.2px;}
+.var-card{background:rgba(255,161,22,0.1);border:1px solid rgba(255,161,22,0.35);border-radius:10px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.32s cubic-bezier(.34,1.4,.5,1);box-shadow:0 6px 20px rgba(0,0,0,0.28);}
+.vc-head{font-size:10.5px;color:rgba(255,255,255,0.65);background:rgba(255,161,22,0.22);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,161,22,0.25);letter-spacing:0.2px;}
 .vc-close{cursor:pointer;opacity:0.4;font-size:12px;padding:0 2px;}
 .vc-close:hover{opacity:0.9;}
 .vc-val{padding:12px 10px;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
 
 .arr-card{width:auto;max-width:100%;}
 .arr-row{display:flex;padding:12px;gap:6px;overflow-x:auto;}
-.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(203,166,247,0.12);border:1px solid rgba(203,166,247,0.3);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
+.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,161,22,0.12);border:1px solid rgba(255,161,22,0.3);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
 .arr-idx{font-size:9px;color:rgba(255,255,255,0.35);}
 .arr-val{font-size:16px;font-weight:600;color:#f5f0ff;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
-.arr-box.arr-changed{background:rgba(166,227,161,0.28);border-color:rgba(166,227,161,0.65);animation:box-pulse 0.5s ease;}
-.arr-box.arr-hl{border-color:#f9e2af;box-shadow:0 0 0 1px rgba(249,226,175,0.5),0 0 16px rgba(249,226,175,0.3);}
+.arr-box.arr-changed{background:rgba(44,187,93,0.28);border-color:rgba(44,187,93,0.65);animation:box-pulse 0.5s ease;}
+.arr-box.arr-hl{border-color:#ffc01e;box-shadow:0 0 0 1px rgba(255,192,30,0.5),0 0 16px rgba(255,192,30,0.3);}
 @keyframes box-pulse{0%{transform:scale(1.25);}100%{transform:scale(1);}}
+
+#heap-section{display:none;flex-shrink:0;position:relative;max-height:42%;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid rgba(255,255,255,0.08);}
+#heap-section.has-heap{display:block;}
+#heap-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:rgba(255,255,255,0.22);padding:7px 14px 0;}
+#heap-boxes{display:flex;gap:10px;flex-wrap:nowrap;padding:7px 14px 10px;}
+#heap-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
+.heap-obj{background:rgba(91,143,249,0.08);border:1px solid rgba(91,143,249,0.32);border-radius:8px;min-width:110px;max-width:190px;flex-shrink:0;overflow:hidden;animation:frame-enter 0.28s cubic-bezier(.34,1.4,.5,1);}
+.heap-obj-head{background:rgba(91,143,249,0.18);padding:5px 9px;font-size:10.5px;font-weight:700;color:#5b8ff9;border-bottom:1px solid rgba(91,143,249,0.22);font-family:'Fira Code',Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.heap-field{padding:3px 9px;font-size:10.5px;font-family:'Fira Code',Consolas,monospace;display:flex;gap:4px;align-items:center;min-height:20px;}
+.heap-fk{color:rgba(255,255,255,0.38);flex-shrink:0;}
+.heap-feq{color:rgba(255,255,255,0.18);flex-shrink:0;}
+.heap-fv{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;}
+.heap-fref{color:#5b8ff9;font-style:italic;}
 
 #vars-panel{width:clamp(150px,14%,260px);flex-shrink:0;border-left:1px solid rgba(255,255,255,0.07);overflow-y:auto;display:flex;flex-direction:column;}
 #vars-list{padding:6px 0;}
@@ -113,9 +126,9 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
 .ctrl-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .ctrl-btn:hover:not(:disabled){background:rgba(255,255,255,0.12);color:#fff;}
 .ctrl-btn:disabled{opacity:0.22;cursor:default;}
-#btn-play{background:rgba(166,227,161,0.12);border-color:rgba(166,227,161,0.3);color:#a6e3a1;flex:1;justify-content:center;}
-#btn-play:hover:not(:disabled){background:rgba(166,227,161,0.2);}
-#btn-play.playing{background:rgba(249,226,175,0.12);border-color:rgba(249,226,175,0.3);color:#f9e2af;}
+#btn-play{background:rgba(44,187,93,0.12);border-color:rgba(44,187,93,0.3);color:#2cbb5d;flex:1;justify-content:center;}
+#btn-play:hover:not(:disabled){background:rgba(44,187,93,0.2);}
+#btn-play.playing{background:rgba(255,192,30,0.12);border-color:rgba(255,192,30,0.3);color:#ffc01e;}
 #speed-select{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.45);font-size:11px;padding:4px 6px;outline:none;cursor:pointer;}
 .kbd-hint{font-size:10px;color:rgba(255,255,255,0.15);text-align:center;letter-spacing:0.2px;}
 .kbd{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:3px;padding:0 4px;font-size:9.5px;color:rgba(255,255,255,0.3);}
@@ -130,8 +143,8 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
    it stays as robust as the rest of the rewrite. */
 .tree-root{display:flex;flex-direction:column;gap:14px;}
 .tree-item{position:relative;}
-.tree-children{margin-left:26px;padding-left:22px;border-left:1.5px dashed rgba(203,166,247,0.25);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
-.tree-children .tree-item::before{content:'';position:absolute;left:-22px;top:19px;width:20px;height:0;border-top:1.5px dashed rgba(203,166,247,0.25);}
+.tree-children{margin-left:26px;padding-left:22px;border-left:1.5px dashed rgba(255,161,22,0.25);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
+.tree-children .tree-item::before{content:'';position:absolute;left:-22px;top:19px;width:20px;height:0;border-top:1.5px dashed rgba(255,161,22,0.25);}
 
 .node-box{display:inline-block;border:1px solid rgba(255,255,255,0.1);border-left:3px solid;border-radius:8px;padding:8px 12px;background:rgba(255,255,255,0.035);box-shadow:0 3px 10px rgba(0,0,0,0.18);transition:background 0.12s,transform 0.12s;}
 .node-box.clickable{cursor:pointer;}
@@ -182,6 +195,17 @@ body{background:#1e1e2e;color:#cdd6f4;font-family:-apple-system,BlinkMacSystemFo
       <div id="main-row">
         <div id="canvas-wrap">
           <div id="stack-breadcrumb"></div>
+          <div id="heap-section">
+            <div id="heap-label">Heap Objects</div>
+            <div id="heap-boxes"></div>
+            <svg id="heap-svg" width="0" height="0">
+              <defs>
+                <marker id="heap-arr" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+                  <polygon points="0 0, 7 2.5, 0 5" fill="rgba(91,143,249,0.6)"/>
+                </marker>
+              </defs>
+            </svg>
+          </div>
           <div id="anim-canvas"></div>
         </div>
         <div id="vars-panel">
@@ -221,7 +245,7 @@ var trace = payload.frames || [];
 var truncated = !!payload.truncated;
 var src = ${safeCode};
 
-var PALETTE = ['#89b4fa','#cba6f7','#a6e3a1','#fab387','#f38ba8','#94e2d5','#f9e2af','#b4befe','#eba0ac'];
+var PALETTE = ['#ffa116','#2cbb5d','#00b8a3','#ffc01e','#5b8ff9','#ef4743','#b39ddb','#4dd0e1','#ff8a65'];
 var cmap = {}, ci = 0;
 function col(name) { if (!cmap[name]) cmap[name] = PALETTE[ci++ % PALETTE.length]; return cmap[name]; }
 
@@ -230,10 +254,10 @@ function esc(s) {
 }
 
 var KIND_COLOR = {
-  int:'#89b4fa', float:'#89b4fa', str:'#a6e3a1', bool:'#fab387', none:'#f38ba8',
-  fn:'#cba6f7', method:'#cba6f7', list:'#fab387', tuple:'#fab387', dict:'#f9e2af', obj:'#cdd6f4'
+  int:'#5b8ff9', float:'#5b8ff9', str:'#2cbb5d', bool:'#ffa116', none:'#ef4743',
+  fn:'#b39ddb', method:'#b39ddb', list:'#ffc01e', tuple:'#ffc01e', dict:'#00b8a3', obj:'#eff1f6'
 };
-function kindColor(k) { return KIND_COLOR[k] || '#cdd6f4'; }
+function kindColor(k) { return KIND_COLOR[k] || '#eff1f6'; }
 
 function shortLabel(entry) {
   if (!entry) return 'None';
@@ -267,6 +291,7 @@ function computeSteps(frames) {
     steps.push({
       type: f.event, func: f.func, line: f.line,
       locals: f.locals || {}, ret: f.ret || null,
+      heap: f.heap || null,
       stack: stack.map(function(s){ return { func: s.func, line: s.line }; }),
       activeIdx: stack.length - 1
     });
@@ -478,6 +503,89 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
   return card;
 }
 
+// Renders heap objects (user-defined class instances) in the dedicated #heap-section strip
+// above the variable cards. Visible only when the current step's frame carries a heap snapshot.
+// Fixed column layout (left-to-right by oid) — d3-force layout replaces this in Session 9.
+// SVG arrows are drawn async via rAF, guarded by a generation counter so rapid stepping never
+// leaves stale arrows from a previous renderHeap call on screen.
+var __heapGen = 0;
+function renderHeap(step) {
+  var section = document.getElementById('heap-section');
+  var boxes = document.getElementById('heap-boxes');
+  var svg = document.getElementById('heap-svg');
+  var heap = step.heap;
+  if (!heap || !Object.keys(heap).length) {
+    section.classList.remove('has-heap');
+    return;
+  }
+  section.classList.add('has-heap');
+  boxes.innerHTML = '';
+  Array.prototype.slice.call(svg.querySelectorAll('path')).forEach(function(p){ p.parentNode.removeChild(p); });
+
+  var gen = ++__heapGen;
+  Object.keys(heap).forEach(function(oid) {
+    var obj = heap[oid];
+    var div = document.createElement('div');
+    div.className = 'heap-obj';
+    div.setAttribute('data-oid', oid);
+    var fields = obj.fields || {};
+    var fieldsHtml = Object.keys(fields).map(function(fn) {
+      var fv = fields[fn];
+      var isRef = (fv.k === 'obj' || fv.k === 'ref') && fv.oid != null;
+      var valHtml = isRef
+        ? '<span class="heap-fv heap-fref" data-ref-oid="'+fv.oid+'">&#8594; '+(fv.cls || ('obj#'+fv.oid))+'</span>'
+        : '<span class="heap-fv" style="color:'+kindColor(fv.k)+'">'+esc(shortLabel(fv))+'</span>';
+      return '<div class="heap-field" data-field-ref="'+(isRef ? fv.oid : '')+'">'+
+        '<span class="heap-fk">'+esc(fn)+'</span>'+
+        '<span class="heap-feq">=</span>'+valHtml+'</div>';
+    }).join('');
+    div.innerHTML =
+      '<div class="heap-obj-head">'+esc(obj.cls)+'<span style="opacity:0.4;font-weight:400"> #'+oid+'</span></div>'+
+      (fieldsHtml || '<div class="heap-field"><span style="color:rgba(255,255,255,0.2);font-style:italic">&#8960;</span></div>');
+    boxes.appendChild(div);
+  });
+
+  requestAnimationFrame(function() {
+    if (gen !== __heapGen) return;
+    drawHeapArrows(section, boxes, svg);
+  });
+}
+
+function drawHeapArrows(section, boxes, svg) {
+  svg.setAttribute('width', section.offsetWidth);
+  svg.setAttribute('height', section.offsetHeight);
+  var sRect = section.getBoundingClientRect();
+  var boxEls = {};
+  Array.prototype.slice.call(boxes.querySelectorAll('.heap-obj[data-oid]')).forEach(function(el) {
+    boxEls[el.getAttribute('data-oid')] = el;
+  });
+  Array.prototype.slice.call(boxes.querySelectorAll('.heap-field[data-field-ref]')).forEach(function(fieldEl) {
+    var targetOid = fieldEl.getAttribute('data-field-ref');
+    if (!targetOid) return;
+    // walk up to find parent .heap-obj
+    var srcBox = fieldEl.parentNode;
+    while (srcBox && !srcBox.classList.contains('heap-obj')) srcBox = srcBox.parentNode;
+    var tgtBox = boxEls[String(targetOid)];
+    if (!srcBox || !tgtBox || srcBox === tgtBox) return;
+    var sr = fieldEl.getBoundingClientRect();
+    var tHead = tgtBox.querySelector('.heap-obj-head');
+    if (!tHead) return;
+    var tr = tHead.getBoundingClientRect();
+    var x1 = sr.right - sRect.left;
+    var y1 = sr.top + sr.height / 2 - sRect.top;
+    var x2 = tr.left - sRect.left;
+    var y2 = tr.top + tr.height / 2 - sRect.top;
+    var dx = Math.max(18, Math.abs(x2 - x1) * 0.45);
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M'+x1+','+y1+' C'+(x1+dx)+','+y1+' '+(x2-dx)+','+y2+' '+x2+','+y2);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'rgba(91,143,249,0.55)');
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('marker-end', 'url(#heap-arr)');
+    svg.appendChild(path);
+  });
+}
+
 // Rebuilds the canvas for this step. Array boxes that changed value since the previous step
 // get a CSS pulse (.arr-changed, defined via @keyframes box-pulse) and a swap between two
 // boxes is called out in the narration (observeStep) rather than physically animated between
@@ -487,6 +595,7 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
 // plain fade-in on the whole canvas (.canvas-stepping) plus the per-box pulse, which is far
 // less likely to silently fail.
 function renderCanvas(stepIdx, step) {
+  renderHeap(step);
   var canvas = document.getElementById('anim-canvas');
   canvas.classList.remove('canvas-stepping');
   void canvas.offsetWidth; // force reflow so the animation restarts on repeated steps
@@ -761,7 +870,7 @@ function detectParams(code) {
 function renderParams(params) {
   var list = document.getElementById('param-list');
   if (!params.length) {
-    list.innerHTML = '<div class="empty-hint">No editable parameters found.<br>Use keyword args like<br><code style="color:#cba6f7;font-family:monospace;font-size:11px">num_times=3</code></div>';
+    list.innerHTML = '<div class="empty-hint">No editable parameters found.<br>Use keyword args like<br><code style="color:#b39ddb;font-family:monospace;font-size:11px">num_times=3</code></div>';
     return;
   }
   params.forEach(function(p) {
@@ -854,6 +963,260 @@ try {
 } catch (err) {
   showRuntimeError(err);
 }
+</script>
+</body>
+</html>`
+}
+
+// ─── Session 8: Haskell Layer B — Lazy Steps view ────────────────────────────
+// Renders a mini-Haskell step trace produced by haskellStepper.stepEval().
+// Each step shows: the redex (sub-expression being reduced), what it reduced to,
+// and which reduction rule was applied.
+//
+// Step format: { step, redex, result, annotation }
+// stepsPayload: JSON string with { steps: Step[], resultStr: string, truncated: boolean }
+
+export function buildHaskellSrcdoc(stepsPayload) {
+  let parsed
+  try { parsed = JSON.parse(stepsPayload) } catch { parsed = { steps: [], resultStr: '?', truncated: false } }
+  const { steps, resultStr, truncated, error } = parsed
+  const safeSteps = JSON.stringify(steps)
+
+  return String.raw`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#1a1a1a;color:#eff1f6;
+  font-family:'Fira Code','Cascadia Code',Menlo,monospace;
+  font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column;
+}
+#header{
+  background:#1f1f1f;border-bottom:1px solid rgba(255,255,255,0.08);
+  padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.badge{
+  background:#313131;border:1px solid rgba(255,255,255,0.12);
+  border-radius:4px;padding:2px 8px;font-size:11px;color:#ffa116;
+  font-weight:600;letter-spacing:0.3px;
+}
+.lang-tag{color:rgba(255,255,255,0.35);font-size:11px;}
+.step-counter{margin-left:auto;color:rgba(255,255,255,0.4);font-size:11px;font-variant-numeric:tabular-nums;}
+#controls{
+  display:flex;gap:6px;align-items:center;padding:6px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;
+}
+button{
+  background:#2a2a2a;border:1px solid rgba(255,255,255,0.1);color:#eff1f6;
+  border-radius:4px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;
+}
+button:hover{background:#333;border-color:rgba(255,255,255,0.2);}
+button:disabled{opacity:0.3;cursor:default;}
+#btn-run{background:#1e3a20;border-color:#2cbb5d;color:#2cbb5d;}
+#btn-run:hover{background:#1e4a20;}
+.speed-sel{
+  background:#2a2a2a;border:1px solid rgba(255,255,255,0.1);color:#eff1f6;
+  border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;
+  margin-left:auto;
+}
+#scrubber{
+  width:100%;accent-color:#ffa116;cursor:pointer;
+}
+#scrubber-row{padding:4px 14px 6px;flex-shrink:0;}
+#step-area{flex:1;overflow-y:auto;padding:14px;}
+.step-card{
+  border:1px solid rgba(255,255,255,0.08);border-radius:6px;
+  margin-bottom:10px;overflow:hidden;
+  animation:card-in 0.18s ease both;
+}
+@keyframes card-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.step-card.active{border-color:#ffa116;box-shadow:0 0 0 1px rgba(255,161,22,0.15);}
+.step-hd{
+  background:rgba(255,255,255,0.04);padding:6px 12px;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.step-num{
+  font-size:10px;font-weight:700;letter-spacing:0.4px;
+  background:#ffa116;color:#1a1a1a;border-radius:3px;
+  padding:1px 6px;
+}
+.step-annotation{color:rgba(255,255,255,0.4);font-size:11px;font-style:italic;}
+.step-body{padding:10px 12px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:start;}
+.step-col{min-width:0;}
+.step-label{font-size:10px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+.step-expr{
+  color:#eff1f6;white-space:pre-wrap;word-break:break-all;
+  background:rgba(255,255,255,0.03);border-radius:4px;padding:6px 8px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+.step-expr.redex{color:#ffc01e;border-color:rgba(255,192,30,0.2);}
+.step-expr.result{color:#2cbb5d;border-color:rgba(44,187,93,0.2);}
+.arrow{color:#ffa116;font-size:18px;padding-top:18px;align-self:center;}
+#result-bar{
+  background:#1f1f1f;border-top:1px solid rgba(44,187,93,0.3);
+  padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.result-label{font-size:11px;color:#2cbb5d;font-weight:600;}
+.result-val{color:#eff1f6;}
+.truncated-banner{
+  background:rgba(255,161,22,0.1);border:1px solid rgba(255,161,22,0.3);
+  border-radius:4px;padding:6px 12px;margin-bottom:10px;
+  color:#ffa116;font-size:12px;
+}
+.error-banner{
+  background:rgba(239,71,67,0.1);border:1px solid rgba(239,71,67,0.3);
+  border-radius:4px;padding:10px 12px;color:#ef4743;
+}
+.empty-state{
+  color:rgba(255,255,255,0.3);text-align:center;padding:40px 20px;font-size:13px;
+}
+</style>
+</head>
+<body>
+<div id="header">
+  <span class="badge">λ Lazy stepper</span>
+  <span class="lang-tag">mini-Haskell Layer B</span>
+  <span class="step-counter" id="step-counter">0 / 0 steps</span>
+</div>
+<div id="controls">
+  <button id="btn-prev" disabled>◀ Prev</button>
+  <button id="btn-next">Next ▶</button>
+  <button id="btn-run" id="btn-play">▶ Play</button>
+  <button id="btn-first" title="Jump to start">⏮</button>
+  <button id="btn-last" title="Jump to end">⏭</button>
+  <select class="speed-sel" id="speed-sel">
+    <option value="1800">0.5x</option>
+    <option value="900" selected>1x</option>
+    <option value="450">2x</option>
+    <option value="225">4x</option>
+  </select>
+</div>
+<div id="scrubber-row">
+  <input type="range" id="scrubber" min="0" value="0" step="1">
+</div>
+<div id="step-area"></div>
+<div id="result-bar">
+  <span class="result-label">Result</span>
+  <span class="result-val" id="result-val">—</span>
+</div>
+<script>
+const STEPS = ${safeSteps};
+const RESULT = ${JSON.stringify(resultStr || '—')};
+const TRUNCATED = ${!!truncated};
+const ERROR = ${JSON.stringify(error || null)};
+const MAX_SHOW = 60; // render at most this many cards at once
+
+let cur = -1;
+let playing = false;
+let timer = null;
+
+const stepArea = document.getElementById('step-area');
+const counter = document.getElementById('step-counter');
+const btnPrev = document.getElementById('btn-prev');
+const btnNext = document.getElementById('btn-next');
+const btnPlay = document.getElementById('btn-run');
+const btnFirst = document.getElementById('btn-first');
+const btnLast = document.getElementById('btn-last');
+const scrubber = document.getElementById('scrubber');
+const resultVal = document.getElementById('result-val');
+
+scrubber.max = Math.max(0, STEPS.length - 1);
+resultVal.textContent = RESULT;
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function render() {
+  if (STEPS.length === 0) {
+    stepArea.innerHTML = ERROR
+      ? '<div class="error-banner">Error: ' + esc(ERROR) + '</div>'
+      : '<div class="empty-state">No reduction steps recorded.<br>Try: <code>take 5 [1..]</code> or <code>map (*2) [1..5]</code></div>';
+    counter.textContent = '0 / 0 steps';
+    return;
+  }
+
+  const total = STEPS.length;
+  const show = cur < 0 ? [] : STEPS.slice(Math.max(0, cur - MAX_SHOW + 1), cur + 1);
+
+  let html = '';
+  if (TRUNCATED) {
+    html += '<div class="truncated-banner">Step limit reached (' + total + ' steps shown). The expression was truncated.</div>';
+  }
+  if (show.length === 0) {
+    html += '<div class="empty-state">Press Next ▶ to start stepping through reductions.</div>';
+  } else {
+    for (let i = 0; i < show.length; i++) {
+      const s = show[i];
+      const isActive = i === show.length - 1;
+      html += '<div class="step-card' + (isActive ? ' active' : '') + '">';
+      html += '<div class="step-hd"><span class="step-num">Step ' + (s.step + 1) + '</span>';
+      html += '<span class="step-annotation">' + esc(s.annotation) + '</span></div>';
+      html += '<div class="step-body">';
+      html += '<div class="step-col"><div class="step-label">Reducing</div><div class="step-expr redex">' + esc(s.redex) + '</div></div>';
+      html += '<div class="arrow">→</div>';
+      html += '<div class="step-col"><div class="step-label">Result</div><div class="step-expr result">' + esc(s.result) + '</div></div>';
+      html += '</div></div>';
+    }
+  }
+  stepArea.innerHTML = html;
+  // Scroll last card into view
+  const cards = stepArea.querySelectorAll('.step-card');
+  if (cards.length) cards[cards.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  counter.textContent = (cur + 1) + ' / ' + total + ' steps';
+  scrubber.value = Math.max(0, cur);
+  btnPrev.disabled = cur <= 0;
+  btnNext.disabled = cur >= total - 1;
+  btnFirst.disabled = cur <= 0;
+  btnLast.disabled = cur >= total - 1;
+  btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+}
+
+function goTo(n) {
+  cur = Math.min(STEPS.length - 1, Math.max(-1, n));
+  render();
+}
+
+function step(dir) { goTo(cur + dir); }
+
+function startPlay() {
+  playing = true;
+  btnPlay.textContent = '⏸ Pause';
+  tick();
+}
+
+function stopPlay() {
+  playing = false;
+  clearTimeout(timer);
+  btnPlay.textContent = '▶ Play';
+}
+
+function tick() {
+  if (!playing) return;
+  if (cur >= STEPS.length - 1) { stopPlay(); return; }
+  step(1);
+  const speed = parseInt(document.getElementById('speed-sel').value, 10) || 900;
+  timer = setTimeout(tick, speed);
+}
+
+btnPrev.addEventListener('click', () => { stopPlay(); step(-1); });
+btnNext.addEventListener('click', () => { stopPlay(); step(1); });
+btnFirst.addEventListener('click', () => { stopPlay(); goTo(0); });
+btnLast.addEventListener('click', () => { stopPlay(); goTo(STEPS.length - 1); });
+btnPlay.addEventListener('click', () => { playing ? stopPlay() : startPlay(); });
+scrubber.addEventListener('input', () => { stopPlay(); goTo(parseInt(scrubber.value, 10)); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { stopPlay(); step(1); }
+  if (e.key === 'ArrowLeft') { stopPlay(); step(-1); }
+  if (e.key === ' ') { e.preventDefault(); playing ? stopPlay() : startPlay(); }
+});
+
+render();
 </script>
 </body>
 </html>`

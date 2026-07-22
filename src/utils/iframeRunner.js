@@ -62,7 +62,12 @@ ${extraHeadHtml}
     } catch (err) {
       post('error', err.message || String(err))
     } finally {
-      post('done', '')
+      // The Visual pane IS this iframe's body for iframe-mode languages, so code that never
+      // touches the DOM (console.log-only scripts, algorithms with no rendering) left it blank
+      // white with no signal that anything ran. Reporting whether the body ended up empty lets
+      // App.jsx fall back to the same "execution complete" summary card Python already shows
+      // when it has no visual payload, instead of leaving a blank pane.
+      window.parent.postMessage({ type: 'done', line: '', bodyEmpty: !document.body.innerHTML.trim() }, '*')
     }
   })
 })()
@@ -120,64 +125,117 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
     _error.apply(console, arguments)
   }
 
-  // --- trace runtime, mirrors python.worker.js's _classify / _tracer in JS terms ---
+  // --- trace runtime, mirrors python.worker.js's _classify_local / _tracer in JS terms ---
+  // Session 3 (2026-07-18): added class instance detection and heap collection so the same
+  // object-graph renderer added to traceVisualizer.js in Session 2 works for JS/TS traces.
+  // __classify returns a dict {k, r, items?, oid?, cls?, fields?} — identical shape to the
+  // Python tracer. Class instances (non-builtin constructors, depth<=5, max 20 fields) are
+  // classified as k='obj'; circular refs become k='ref'. Plain {} stays k='dict'.
+  // __buildFrame computes both the locals snapshot and the heap dict in one pass.
   var __traceFrames = []
   var __traceTruncated = false
+  var __objIdMap = new WeakMap()
+  var __objIdCtr = 0
+  function __getObjId(v) {
+    if (!__objIdMap.has(v)) __objIdMap.set(v, __objIdCtr++)
+    return __objIdMap.get(v)
+  }
 
-  function __classify(v) {
+  var __BUILTIN = new Set(['Object','Array','Function','RegExp','Date','Map','Set','WeakMap','WeakSet','Promise','Error','TypeError','RangeError','SyntaxError','ReferenceError','EvalError','URIError','ArrayBuffer','DataView','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array','Number','String','Boolean','Symbol','BigInt'])
+
+  function __classify(v, depth, seen) {
+    if (depth === undefined) depth = 0
     try {
-      if (v === null || v === undefined) return ['none', 'None', null]
-      if (typeof v === 'boolean') return ['bool', String(v), null]
-      if (typeof v === 'number') return [Number.isInteger(v) ? 'int' : 'float', String(v), null]
+      if (v === null || v === undefined) return { k: 'none', r: 'None' }
+      if (typeof v === 'boolean') return { k: 'bool', r: String(v) }
+      if (typeof v === 'number') return { k: Number.isInteger(v) ? 'int' : 'float', r: String(v) }
       if (typeof v === 'string') {
-        var r = JSON.stringify(v)
-        return ['str', r.length > 120 ? r.slice(0, 120) + '...' : r, null]
+        var rs = JSON.stringify(v)
+        return { k: 'str', r: rs.length > 120 ? rs.slice(0, 120) + '...' : rs }
       }
       if (Array.isArray(v)) {
-        var items = v.slice(0, 50).map(function (el) {
-          var s
-          try { s = JSON.stringify(el) } catch (e) { s = String(el) }
+        var items = v.slice(0, 50).map(function(el) {
+          var s; try { s = JSON.stringify(el) } catch(e) { s = String(el) }
           if (s === undefined) s = String(el)
           return s.length > 60 ? s.slice(0, 60) + '...' : s
         })
-        var r2 = '[' + items.join(', ') + (v.length > 50 ? ', ...' : '') + ']'
-        return ['list', r2.length > 120 ? r2.slice(0, 120) + '...' : r2, items]
+        var ra = '[' + items.join(', ') + (v.length > 50 ? ', ...' : '') + ']'
+        return { k: 'list', r: ra.length > 120 ? ra.slice(0, 120) + '...' : ra, items: items }
       }
-      if (typeof v === 'function') return ['fn', 'function ' + (v.name || 'anonymous') + '()', null]
+      if (typeof v === 'function') return { k: 'fn', r: 'function ' + (v.name || 'anonymous') + '()' }
       if (typeof v === 'object') {
-        var r3
-        try { r3 = JSON.stringify(v) } catch (e) { r3 = String(v) }
-        return ['dict', r3.length > 120 ? r3.slice(0, 120) + '...' : r3, null]
+        var cls = v.constructor && typeof v.constructor.name === 'string' && v.constructor.name && !__BUILTIN.has(v.constructor.name) ? v.constructor.name : null
+        if (cls) {
+          if (seen && seen.has(v)) return { k: 'ref', r: '<' + cls + ' #' + __getObjId(v) + '>', oid: __getObjId(v) }
+          var oid = __getObjId(v)
+          var objEntry = { k: 'obj', r: cls + '#' + oid, oid: oid, cls: cls }
+          if (depth < 5) {
+            if (!seen) seen = new WeakSet()
+            seen.add(v)
+            var fields = {}
+            try {
+              var keys = Object.keys(v).slice(0, 20)
+              for (var ki = 0; ki < keys.length; ki++) {
+                var fk = keys[ki]
+                if (fk.charAt(0) !== '_') {
+                  try { fields[fk] = __classify(v[fk], depth + 1, seen) } catch(e) {}
+                }
+              }
+            } catch(e) {}
+            if (Object.keys(fields).length) objEntry.fields = fields
+          }
+          return objEntry
+        }
+        var ro; try { ro = JSON.stringify(v) } catch(e) { ro = String(v) }
+        return { k: 'dict', r: ro && ro.length > 120 ? ro.slice(0, 120) + '...' : (ro || '{}') }
       }
-      return ['obj', String(v), null]
-    } catch (e) {
-      return ['obj', '?', null]
+      return { k: 'obj', r: String(v) }
+    } catch(e) {
+      return { k: 'obj', r: '?' }
     }
   }
 
-  function __pairsToLocals(pairs) {
-    var loc = {}
+  function __collectHeap(entry, heap, visited) {
+    if (!entry || entry.k !== 'obj' || entry.oid == null) return
+    var key = String(entry.oid)
+    if (visited.has(key)) return
+    visited.add(key)
+    heap[key] = { cls: entry.cls, r: entry.r, fields: entry.fields || {} }
+    var flds = entry.fields || {}
+    Object.keys(flds).forEach(function(fn) { __collectHeap(flds[fn], heap, visited) })
+  }
+
+  function __buildFrame(pairs) {
+    var loc = {}, heap = {}, heapVisited = new Set(), seen = new WeakSet()
     for (var i = 0; i < pairs.length; i++) {
       var name = pairs[i][0], val = pairs[i][1]
-      var c = __classify(val)
-      var entry = { r: c[1], k: c[0] }
-      if (c[2] !== null) entry.items = c[2]
-      loc[name] = entry
+      var entry = __classify(val, 0, seen)
+      var locEntry = { k: entry.k, r: entry.r }
+      if (entry.items) locEntry.items = entry.items
+      if (entry.oid != null) locEntry.oid = entry.oid
+      loc[name] = locEntry
+      __collectHeap(entry, heap, heapVisited)
     }
-    return loc
+    return { loc: loc, heap: Object.keys(heap).length ? heap : null }
   }
 
-  window.__trace = function (line, event, func, pairs) {
+  window.__trace = function(line, event, func, pairs) {
     if (__traceFrames.length >= 2000) { __traceTruncated = true; return }
-    __traceFrames.push({ event: event, func: func, line: line, locals: __pairsToLocals(pairs), ret: null })
+    var frame = __buildFrame(pairs)
+    var f = { event: event, func: func, line: line, locals: frame.loc, ret: null }
+    if (frame.heap) f.heap = frame.heap
+    __traceFrames.push(f)
   }
 
-  window.__traceReturn = function (line, func, pairs, value) {
+  window.__traceReturn = function(line, func, pairs, value) {
     if (__traceFrames.length < 2000) {
-      var c = __classify(value)
-      var retEntry = { r: c[1], k: c[0] }
-      if (c[2] !== null) retEntry.items = c[2]
-      __traceFrames.push({ event: 'return', func: func, line: line, locals: __pairsToLocals(pairs), ret: retEntry })
+      var retRaw = __classify(value, 0, new WeakSet())
+      var retEntry = { k: retRaw.k, r: retRaw.r }
+      if (retRaw.items) retEntry.items = retRaw.items
+      var frame = __buildFrame(pairs)
+      var f = { event: 'return', func: func, line: line, locals: frame.loc, ret: retEntry }
+      if (frame.heap) f.heap = frame.heap
+      __traceFrames.push(f)
     } else {
       __traceTruncated = true
     }
@@ -192,7 +250,10 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
       post('error', err.message || String(err))
     } finally {
       window.parent.postMessage({ type: 'js_trace', frames: __traceFrames, truncated: __traceTruncated }, '*')
-      post('done', '')
+      // See buildIframeSrcdoc's matching comment: reports whether the body ended up empty so
+      // App.jsx can fall back to the default summary card instead of a blank pane when there's
+      // no trace AND no DOM output either.
+      window.parent.postMessage({ type: 'done', line: '', bodyEmpty: !document.body.innerHTML.trim() }, '*')
     }
   })
 })()

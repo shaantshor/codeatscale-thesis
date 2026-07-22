@@ -6,14 +6,10 @@ import { oneDark } from '@codemirror/theme-one-dark'
 import { LANGUAGES } from '../config/languages'
 import './CodeEditor.css'
 
-// Three Compartments:
-//   editableCompartment   — toggles EditorView.editable (readOnly prop)
-//   languageCompartment   — swaps the CM6 language extension when language prop changes
-//   highlightCompartment  — applies a single line-highlight decoration for highlightLine
-// All module-level because they must be stable references across renders.
 const editableCompartment = new Compartment()
 const languageCompartment = new Compartment()
 const highlightCompartment = new Compartment()
+const themeCompartment = new Compartment()
 
 // Builds the line-highlight decoration extension for a given 1-based line number. Returns
 // [] (no decoration) when lineNum is null/out of range — used to clear the highlight, e.g.
@@ -26,12 +22,13 @@ function buildHighlightExtension(lineNum, doc) {
   )
 }
 
-export default function CodeEditor({ value, onChange, readOnly = false, language = 'python', highlightLine = null }) {
+export default function CodeEditor({ value, onChange, readOnly = false, language = 'python', highlightLine = null, darkMode = false }) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
+  const onChangeRef = useRef(onChange)
 
-  // Create the editor once on mount. Language extension starts as [] (plain text)
-  // and is swapped asynchronously by the language-swap effect below.
+  onChangeRef.current = onChange
+
   useEffect(() => {
     const view = new EditorView({
       state: EditorState.create({
@@ -39,14 +36,15 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
         extensions: [
           lineNumbers(),
           history(),
+          EditorView.lineWrapping,
           keymap.of([...defaultKeymap, ...historyKeymap]),
-          oneDark,
+          themeCompartment.of(darkMode ? oneDark : []),
           editableCompartment.of(EditorView.editable.of(!readOnly)),
           languageCompartment.of([]),
           highlightCompartment.of([]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
-              onChange(update.state.doc.toString())
+              onChangeRef.current(update.state.doc.toString())
             }
           }),
         ],
@@ -82,7 +80,6 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
     view.dispatch({ effects })
   }, [highlightLine, value])
 
-  // Sync readOnly changes
   useEffect(() => {
     const view = viewRef.current
     if (!view) return
@@ -90,6 +87,14 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
       effects: editableCompartment.reconfigure(EditorView.editable.of(!readOnly)),
     })
   }, [readOnly])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: themeCompartment.reconfigure(darkMode ? oneDark : []),
+    })
+  }, [darkMode])
 
   // Swap language extension when the language prop changes.
   // Calls the cmLang factory from the registry; if it returns null (e.g. R, Haskell)
@@ -102,15 +107,17 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
       view.dispatch({ effects: languageCompartment.reconfigure([]) })
       return
     }
+    let cancelled = false // guards against a slow load landing after another language switch
     entry.cmLang().then(ext => {
-      if (!viewRef.current) return // editor may have unmounted during async load
+      if (cancelled || !viewRef.current) return
       viewRef.current.dispatch({
         effects: languageCompartment.reconfigure(ext ? [ext] : []),
       })
     }).catch(() => {
-      if (!viewRef.current) return
+      if (cancelled || !viewRef.current) return
       viewRef.current.dispatch({ effects: languageCompartment.reconfigure([]) })
     })
+    return () => { cancelled = true }
   }, [language])
 
   return <div ref={containerRef} className="cm-editor-wrap" />
