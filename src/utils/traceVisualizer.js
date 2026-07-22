@@ -19,7 +19,7 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 
 #mode-bar{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
 .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px;}
-.mode-btn.active{background:rgba(255,161,22,0.15);border-color:rgba(255,161,22,0.45);color:#b39ddb;}
+.mode-btn.active{background:rgba(255,255,255,0.06);border-color:rgba(179,157,219,0.5);color:#b39ddb;}
 .mode-btn:hover:not(.active){border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.65);}
 
 .ph{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.25);padding:8px 10px 7px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
@@ -31,7 +31,7 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 .p-cur{font-size:18px;font-weight:700;color:#b39ddb;margin-bottom:6px;font-variant-numeric:tabular-nums;line-height:1;}
 .p-range{width:100%;accent-color:#b39ddb;cursor:ew-resize;display:block;margin-bottom:4px;}
 .p-num{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#eff1f6;font-size:12px;padding:4px 7px;outline:none;display:block;}
-.p-num:focus,.p-str:focus{border-color:rgba(255,161,22,0.55);}
+.p-num:focus,.p-str:focus{border-color:rgba(179,157,219,0.6);}
 .p-str{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#eff1f6;font-size:12px;padding:5px 7px;outline:none;display:block;}
 .empty-hint{font-size:11px;color:rgba(255,255,255,0.2);font-style:italic;line-height:1.7;padding:2px 0;}
 .params-tip{font-size:10px;color:rgba(255,255,255,0.14);text-align:center;padding:7px 8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,0.05);line-height:1.6;}
@@ -45,28 +45,20 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 #step-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
 #step-header{padding:9px 12px 7px;flex-shrink:0;}
-#step-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 9px;border-radius:20px;margin-bottom:7px;}
-#step-badge.call{background:rgba(44,187,93,0.15);color:#2cbb5d;border:1px solid rgba(44,187,93,0.3);}
-#step-badge.return{background:rgba(255,192,30,0.15);color:#ffc01e;border:1px solid rgba(255,192,30,0.3);}
-#step-badge.line{background:rgba(91,143,249,0.13);color:#5b8ff9;border:1px solid rgba(91,143,249,0.28);}
-#step-badge.swap{background:rgba(239,71,67,0.16);color:#ef4743;border:1px solid rgba(239,71,67,0.35);box-shadow:0 0 12px rgba(239,71,67,0.25);}
-#step-badge.compare{background:rgba(0,184,163,0.14);color:#00b8a3;border:1px solid rgba(0,184,163,0.3);}
-#step-badge.loop{background:rgba(255,161,22,0.14);color:#b39ddb;border:1px solid rgba(255,161,22,0.3);}
+/* Restyle pass (codespecs.shah.fyi reference): one badge style regardless of step kind —
+   the reference site has no per-event-type color coding, so obs.kind now only drives the
+   label text (via BADGE_LABEL), not the badge's color. */
+#step-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 9px;border-radius:20px;margin-bottom:7px;background:rgba(255,255,255,0.06);color:#b39ddb;border:1px solid rgba(255,255,255,0.16);}
 #step-desc{font-size:13px;font-weight:500;color:rgba(255,255,255,0.82);line-height:1.45;min-height:18px;font-family:'Fira Code',Consolas,monospace;}
 #step-counter-line{display:flex;align-items:center;gap:8px;margin-top:7px;}
 #step-count-text{font-size:10px;color:rgba(255,255,255,0.3);font-variant-numeric:tabular-nums;white-space:nowrap;}
 #prog-bar{flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;cursor:pointer;}
-#prog-fill{height:100%;background:linear-gradient(90deg,#5b8ff9,#b39ddb);border-radius:2px;transition:width 0.15s ease;pointer-events:none;}
+#prog-fill{height:100%;background:#b39ddb;border-radius:2px;transition:width 0.15s ease;pointer-events:none;}
 #step-dots{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;margin-top:8px;padding-bottom:2px;}
 .step-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,0.12);cursor:pointer;transition:transform 0.12s,background 0.12s;}
 .step-dot:hover{transform:scale(1.5);}
 .step-dot.active{transform:scale(1.7);background:#eff1f6 !important;}
-.step-dot-call{background:rgba(44,187,93,0.45);}
-.step-dot-return{background:rgba(255,192,30,0.45);}
-.step-dot-line{background:rgba(91,143,249,0.3);}
-.step-dot-swap{background:rgba(239,71,67,0.7);}
-.step-dot-compare{background:rgba(0,184,163,0.5);}
-.step-dot-loop{background:rgba(255,161,22,0.5);}
+.step-dot-call,.step-dot-return,.step-dot-line,.step-dot-swap,.step-dot-compare,.step-dot-loop{background:rgba(179,157,219,0.4);}
 
 #main-row{flex:1;display:flex;overflow:hidden;min-height:0;}
 
@@ -82,37 +74,41 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 }
 .canvas-empty{color:rgba(255,255,255,0.2);font-style:italic;font-size:13px;padding:20px;width:100%;text-align:center;}
 
-/* Card look leans toward the reference video's pastel-lavender "sticky note" cards: a solid
-   tinted purple fill rather than the near-invisible translucent panel used before, plus a
-   small bounce on entry so a new card visibly pops onto the canvas instead of just fading in. */
-@keyframes frame-enter{0%{opacity:0;transform:translateY(-6px) scale(0.85);}70%{opacity:1;transform:translateY(1px) scale(1.03);}100%{opacity:1;transform:translateY(0) scale(1);}}
-.var-card{background:rgba(255,161,22,0.1);border:1px solid rgba(255,161,22,0.35);border-radius:10px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.32s cubic-bezier(.34,1.4,.5,1);box-shadow:0 6px 20px rgba(0,0,0,0.28);}
-.vc-head{font-size:10.5px;color:rgba(255,255,255,0.65);background:rgba(255,161,22,0.22);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,161,22,0.25);letter-spacing:0.2px;}
+/* Restyle pass (codespecs.shah.fyi reference): the reference site uses plain bordered boxes
+   with a near-monochrome fill and a single accent color for values, not a tinted "sticky
+   note" card per kind — and cards fade in rather than bounce onto the canvas. */
+@keyframes frame-enter{from{opacity:0;}to{opacity:1;}}
+.var-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.14);border-radius:8px;width:clamp(130px,11%,210px);flex-shrink:0;overflow:hidden;animation:frame-enter 0.18s ease-out;}
+.vc-head{font-size:10.5px;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.04);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);letter-spacing:0.2px;font-family:'Fira Code',Consolas,monospace;}
 .vc-close{cursor:pointer;opacity:0.4;font-size:12px;padding:0 2px;}
 .vc-close:hover{opacity:0.9;}
 .vc-val{padding:12px 10px;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;font-family:'Fira Code',Consolas,monospace;}
 
+/* Array rendering matches the reference site's memory-row look: one continuous bordered
+   strip with thin internal dividers between cells, rather than separate rounded "pill"
+   boxes with gaps between them. */
 .arr-card{width:auto;max-width:100%;}
-.arr-row{display:flex;padding:12px;gap:6px;overflow-x:auto;}
-.arr-box{display:flex;flex-direction:column;align-items:center;background:rgba(255,161,22,0.12);border:1px solid rgba(255,161,22,0.3);border-radius:7px;padding:5px 12px;min-width:34px;flex-shrink:0;transition:background 0.15s,border-color 0.15s;position:relative;}
+.arr-row{display:flex;padding:0;gap:0;overflow-x:auto;margin:12px;width:fit-content;border:1px solid rgba(255,255,255,0.18);border-radius:6px;}
+.arr-box{display:flex;flex-direction:column;align-items:center;background:transparent;border:none;border-right:1px solid rgba(255,255,255,0.18);border-radius:0;padding:6px 14px;min-width:34px;flex-shrink:0;transition:background 0.15s;position:relative;}
+.arr-box:last-child{border-right:none;}
 .arr-idx{font-size:9px;color:rgba(255,255,255,0.35);}
-.arr-val{font-size:16px;font-weight:600;color:#f5f0ff;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
-.arr-box.arr-changed{background:rgba(44,187,93,0.28);border-color:rgba(44,187,93,0.65);animation:box-pulse 0.5s ease;}
-.arr-box.arr-hl{border-color:#ffc01e;box-shadow:0 0 0 1px rgba(255,192,30,0.5),0 0 16px rgba(255,192,30,0.3);}
-@keyframes box-pulse{0%{transform:scale(1.25);}100%{transform:scale(1);}}
+.arr-val{font-size:16px;font-weight:600;color:#b39ddb;font-variant-numeric:tabular-nums;font-family:'Fira Code',Consolas,monospace;}
+.arr-box.arr-changed{background:rgba(179,157,219,0.24);animation:box-pulse 0.4s ease;}
+.arr-box.arr-hl{background:rgba(179,157,219,0.12);}
+@keyframes box-pulse{0%{background:rgba(179,157,219,0.5);}100%{background:rgba(179,157,219,0.24);}}
 
 #heap-section{display:none;flex-shrink:0;position:relative;max-height:42%;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid rgba(255,255,255,0.08);}
 #heap-section.has-heap{display:block;}
 #heap-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:rgba(255,255,255,0.22);padding:7px 14px 0;}
 #heap-boxes{display:flex;gap:10px;flex-wrap:nowrap;padding:7px 14px 10px;}
 #heap-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
-.heap-obj{background:rgba(91,143,249,0.08);border:1px solid rgba(91,143,249,0.32);border-radius:8px;min-width:110px;max-width:190px;flex-shrink:0;overflow:hidden;animation:frame-enter 0.28s cubic-bezier(.34,1.4,.5,1);}
-.heap-obj-head{background:rgba(91,143,249,0.18);padding:5px 9px;font-size:10.5px;font-weight:700;color:#5b8ff9;border-bottom:1px solid rgba(91,143,249,0.22);font-family:'Fira Code',Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.heap-obj{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.16);border-radius:8px;min-width:110px;max-width:190px;flex-shrink:0;overflow:hidden;animation:frame-enter 0.18s ease-out;}
+.heap-obj-head{background:rgba(255,255,255,0.04);padding:5px 9px;font-size:10.5px;font-weight:700;color:#b39ddb;border-bottom:1px solid rgba(255,255,255,0.12);font-family:'Fira Code',Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .heap-field{padding:3px 9px;font-size:10.5px;font-family:'Fira Code',Consolas,monospace;display:flex;gap:4px;align-items:center;min-height:20px;}
 .heap-fk{color:rgba(255,255,255,0.38);flex-shrink:0;}
 .heap-feq{color:rgba(255,255,255,0.18);flex-shrink:0;}
 .heap-fv{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;}
-.heap-fref{color:#5b8ff9;font-style:italic;}
+.heap-fref{color:#b39ddb;font-style:italic;}
 
 #vars-panel{width:clamp(150px,14%,260px);flex-shrink:0;border-left:1px solid rgba(255,255,255,0.07);overflow-y:auto;display:flex;flex-direction:column;}
 #vars-list{padding:6px 0;}
@@ -143,8 +139,8 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
    it stays as robust as the rest of the rewrite. */
 .tree-root{display:flex;flex-direction:column;gap:14px;}
 .tree-item{position:relative;}
-.tree-children{margin-left:26px;padding-left:22px;border-left:1.5px dashed rgba(255,161,22,0.25);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
-.tree-children .tree-item::before{content:'';position:absolute;left:-22px;top:19px;width:20px;height:0;border-top:1.5px dashed rgba(255,161,22,0.25);}
+.tree-children{margin-left:26px;padding-left:22px;border-left:1.5px dashed rgba(255,255,255,0.18);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
+.tree-children .tree-item::before{content:'';position:absolute;left:-22px;top:19px;width:20px;height:0;border-top:1.5px dashed rgba(255,255,255,0.18);}
 
 .node-box{display:inline-block;border:1px solid rgba(255,255,255,0.1);border-left:3px solid;border-radius:8px;padding:8px 12px;background:rgba(255,255,255,0.035);box-shadow:0 3px 10px rgba(0,0,0,0.18);transition:background 0.12s,transform 0.12s;}
 .node-box.clickable{cursor:pointer;}
@@ -201,7 +197,7 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
             <svg id="heap-svg" width="0" height="0">
               <defs>
                 <marker id="heap-arr" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-                  <polygon points="0 0, 7 2.5, 0 5" fill="rgba(91,143,249,0.6)"/>
+                  <polygon points="0 0, 7 2.5, 0 5" fill="rgba(179,157,219,0.6)"/>
                 </marker>
               </defs>
             </svg>
@@ -245,19 +241,21 @@ var trace = payload.frames || [];
 var truncated = !!payload.truncated;
 var src = ${safeCode};
 
-var PALETTE = ['#ffa116','#2cbb5d','#00b8a3','#ffc01e','#5b8ff9','#ef4743','#b39ddb','#4dd0e1','#ff8a65'];
-var cmap = {}, ci = 0;
-function col(name) { if (!cmap[name]) cmap[name] = PALETTE[ci++ % PALETTE.length]; return cmap[name]; }
+// Restyle pass (codespecs.shah.fyi reference): one accent color for everything — function
+// names in the breadcrumb/call-tree no longer get a rainbow per-name color; the current
+// frame is distinguished by weight (.bc-active) instead of hue.
+var ACCENT = '#b39ddb';
+function col(name) { return ACCENT; }
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-var KIND_COLOR = {
-  int:'#5b8ff9', float:'#5b8ff9', str:'#2cbb5d', bool:'#ffa116', none:'#ef4743',
-  fn:'#b39ddb', method:'#b39ddb', list:'#ffc01e', tuple:'#ffc01e', dict:'#00b8a3', obj:'#eff1f6'
-};
-function kindColor(k) { return KIND_COLOR[k] || '#eff1f6'; }
+// Restyle pass (codespecs.shah.fyi reference): the reference uses one accent color for every
+// value regardless of type, rather than a distinct hue per kind — kindColor() now always
+// returns ACCENT, but keeps its signature so every call site (scalar cards, array cells,
+// the Variables panel, the Flow-view locals) needed no further changes.
+function kindColor(k) { return ACCENT; }
 
 function shortLabel(entry) {
   if (!entry) return 'None';
@@ -469,14 +467,11 @@ function attachCloseHandler(card, name) {
   });
 }
 
-var ICON = { int:'#', float:'~', str:'❝', bool:'◑', none:'∅', fn:'ƒ', method:'ƒ', list:'▤', tuple:'▤', dict:'▥', obj:'●' };
-
 function buildScalarCard(name, entry) {
   var card = document.createElement('div');
   card.className = 'var-card';
-  var icon = ICON[entry.k] || ICON.obj;
   card.innerHTML =
-    '<div class="vc-head"><span>'+icon+' '+esc(name)+': '+entry.k+'</span><span class="vc-close">×</span></div>' +
+    '<div class="vc-head"><span>'+esc(name)+': '+entry.k+'</span><span class="vc-close">×</span></div>' +
     '<div class="vc-val" style="color:'+kindColor(entry.k)+'">'+esc(shortLabel(entry))+'</div>';
   attachCloseHandler(card, name);
   return card;
@@ -497,7 +492,7 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
       '</div>';
   }).join('');
   card.innerHTML =
-    '<div class="vc-head"><span>' + ICON.list + ' ' + esc(name)+': '+entry.k+'['+items.length+']</span><span class="vc-close">×</span></div>' +
+    '<div class="vc-head"><span>' + esc(name)+': '+entry.k+'['+items.length+']</span><span class="vc-close">×</span></div>' +
     '<div class="arr-row">'+boxes+'</div>';
   attachCloseHandler(card, name);
   return card;
@@ -579,7 +574,7 @@ function drawHeapArrows(section, boxes, svg) {
     var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', 'M'+x1+','+y1+' C'+(x1+dx)+','+y1+' '+(x2-dx)+','+y2+' '+x2+','+y2);
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', 'rgba(91,143,249,0.55)');
+    path.setAttribute('stroke', 'rgba(179,157,219,0.55)');
     path.setAttribute('stroke-width', '1.5');
     path.setAttribute('marker-end', 'url(#heap-arr)');
     svg.appendChild(path);
