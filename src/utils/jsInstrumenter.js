@@ -28,9 +28,14 @@
 //     running a real trace end-to-end and diffing narration output against the Python version of
 //     the same algorithm, not by reasoning about the AST alone — the two produced different
 //     comparison counts for an identical bubble sort until this was fixed.
-//   - Statement kinds we don't specifically understand (try/catch, switch, classes, destructuring
+//   - Statement kinds we don't specifically understand (try/catch, switch, destructuring
 //     declarators) are left un-recursed: they still get a single trace call before them, but
 //     nothing inside is traced at line granularity. Documented limitation, not a hard failure.
+//   - class declarations ARE traced (instrumentClass): every ordinary method, including the
+//     constructor, is instrumented individually with 'this' seeded into scope. Not yet supported:
+//     getters/setters, computed method names ([Symbol.iterator]() {}), class expressions
+//     (const X = class {}), and private fields (#x) — all documented limitations, not failures;
+//     the rest of the class still traces normally.
 //   - A parse failure, or a source with no traceable function, returns { ok: false } so the
 //     caller can fall back to plain iframe execution unchanged.
 
@@ -159,21 +164,50 @@ export function instrumentForTrace(code) {
     }
   }
 
-  function instrumentFunction(funcNode, name) {
+  // extraNames lets class methods seed 'this' into scope: pairsLiteral interpolates names as
+  // bare identifier references, so adding the string "this" to the scope set produces
+  // `[["this",this]]` in the generated trace call — a valid reference to the method's receiver,
+  // no special-casing needed anywhere else.
+  function instrumentFunction(funcNode, name, extraNames) {
     if (funcCount >= MAX_FUNCS) return
     funcCount++
-    const scopeChain = [new Set(paramNames(funcNode.params))]
+    const scopeChain = [new Set([...paramNames(funcNode.params), ...(extraNames || [])])]
     const bodyLine = funcNode.id ? funcNode.id.loc.start.line : funcNode.loc.start.line
     insertions.push({ pos: funcNode.body.start + 1, text: traceCall(bodyLine, 'call', name, scopeChain) })
     if (funcNode.body.type === 'BlockStatement') walkStatements(funcNode.body.body, scopeChain, name)
   }
 
-  // Discover top-level traceable functions: function declarations, and `const f = function(){}`
-  // / `const f = (...) => {}` with a block body. Nested/recursive helper functions are picked
-  // up by instrumentFunction's own recursion (the FunctionDeclaration branch in walkStatements).
+  // Instruments every ordinary method (including the constructor) on a class declaration.
+  // Getters/setters and computed method names ([Symbol.iterator]() {}) are left un-instrumented
+  // — documented limitation, not a hard failure (the class itself, and every other method, still
+  // traces normally). Static methods are labeled "ClassName.method (static)" in the breadcrumb;
+  // the constructor is labeled with the bare class name, matching how Python's __init__ shows up
+  // as the class name in tracebacks/breadcrumbs there.
+  function instrumentClass(classNode) {
+    const className = classNode.id.name
+    for (const member of classNode.body.body) {
+      if (member.type !== 'MethodDefinition') continue
+      if (member.kind === 'get' || member.kind === 'set') continue
+      if (member.key.type !== 'Identifier') continue
+      if (!member.value || member.value.type !== 'FunctionExpression') continue
+      if (!member.value.body || member.value.body.type !== 'BlockStatement') continue
+      const methodName = member.kind === 'constructor'
+        ? className
+        : className + '.' + member.key.name + (member.static ? ' (static)' : '')
+      instrumentFunction(member.value, methodName, ['this'])
+    }
+  }
+
+  // Discover top-level traceable functions: function declarations, `const f = function(){}` /
+  // `const f = (...) => {}` with a block body, and class declarations (each method instrumented
+  // individually via instrumentClass). Nested/recursive helper functions and functions nested
+  // inside methods are picked up by instrumentFunction's own recursion (the FunctionDeclaration
+  // branch in walkStatements).
   for (const node of ast.body) {
     if (node.type === 'FunctionDeclaration' && node.id) {
       instrumentFunction(node, node.id.name)
+    } else if (node.type === 'ClassDeclaration' && node.id) {
+      instrumentClass(node)
     } else if (node.type === 'VariableDeclaration') {
       for (const d of node.declarations) {
         if (
