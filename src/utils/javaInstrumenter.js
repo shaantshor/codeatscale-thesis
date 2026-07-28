@@ -47,6 +47,8 @@
 // Uses a single trailing `\{` to anchor the match to the opening brace of the body.
 const METHOD_RE = /\b((?:(?:public|private|protected|static|final|synchronized|native|default)\s+)*)(\w[\w$]*(?:<[^>]*>)?(?:\[\])*)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w\s,.<>]+?)?\s*\{/g
 
+const MODIFIER_WORDS = new Set(['public', 'private', 'protected', 'static', 'final', 'synchronized', 'native', 'default'])
+
 function parseParams(paramStr) {
   if (!paramStr.trim()) return []
   return paramStr.split(',').map(p => {
@@ -408,11 +410,59 @@ class __CasTrace {
 }
 `
 
+// Matches a class/interface/enum header so constructors can be found within a known class's
+// own name and brace range. Doesn't handle anonymous classes or interfaces with default methods
+// acting as pseudo-constructors — out of scope, those aren't constructors.
+const CLASS_RE = /\bclass\s+(\w[\w$]*)(?:\s+extends\s+[\w$.<>,\s]+)?(?:\s+implements\s+[\w$.<>,\s]+)?\s*\{/g
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// METHOD_RE requires two identifiers before `(` (return type + name); a constructor only has
+// one (the class name), so it's invisible to METHOD_RE unless a modifier happens to be present
+// (in which case it matches by accident, with the modifier mis-captured as the "return type" —
+// harmless since the name still comes out right, but it means a no-modifier constructor like
+// `Node(int val) { ... }` is silently skipped entirely). This finds constructors explicitly,
+// scoped to each class's own name and brace range, and skips any that METHOD_RE already caught
+// (by bracePos) so a modifier-present constructor never gets instrumented twice.
+function findConstructors(source, existingBracePositions) {
+  const found = []
+  CLASS_RE.lastIndex = 0
+  let cm
+  while ((cm = CLASS_RE.exec(source)) !== null) {
+    const className = cm[1]
+    const classBraceStart = cm.index + cm[0].length - 1
+    const classBraceEnd = findBodyEnd(source, classBraceStart)
+    const ctorRe = new RegExp(
+      '\\b(?:(?:public|private|protected)\\s+)?' + escapeRegex(className) + '\\s*\\(([^)]*)\\)\\s*\\{',
+      'g'
+    )
+    let m
+    while ((m = ctorRe.exec(source)) !== null) {
+      const bracePos = m.index + m[0].length - 1
+      if (bracePos <= classBraceStart || bracePos >= classBraceEnd) continue // outside this class
+      if (existingBracePositions.has(bracePos)) continue // already matched by METHOD_RE
+      existingBracePositions.add(bracePos)
+      found.push({
+        name: className,
+        returnType: 'void', // constructors can only have bare `return;`, same shape as a void method
+        params: parseParams(m[1]),
+        bodyStart: bracePos,
+        bodyEnd: findBodyEnd(source, bracePos),
+        lineNum: lineOf(source, m.index),
+      })
+    }
+  }
+  return found
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export function instrumentForTrace(source) {
   try {
     const methods = []
+    const bracePositions = new Set()
     METHOD_RE.lastIndex = 0
     let m
     while ((m = METHOD_RE.exec(source)) !== null) {
@@ -423,6 +473,7 @@ export function instrumentForTrace(source) {
       const bracePos = m.index + m[0].length - 1
       const bodyEnd = findBodyEnd(source, bracePos)
       const ln = lineOf(source, m.index)
+      bracePositions.add(bracePos)
       methods.push({
         name: methodName,
         returnType,
@@ -433,7 +484,34 @@ export function instrumentForTrace(source) {
       })
     }
 
+    // A constructor with a modifier (e.g. `public Holder(Node n) { ... }`) only matches
+    // METHOD_RE by regex-backtracking accident: with no return type present, the modifier
+    // itself gets captured into the "return type" group (m[2] = "public"), while the method
+    // name (m[3]) still comes out correct. This means instrumentMethod's `returnType === 'void'`
+    // check fails for these entries even though a constructor can only ever have a bare
+    // `return;` — identical in shape to a void method — so a constructor with no explicit return
+    // statement silently got NO return trace appended at all (found by actually compiling and
+    // running a two-constructor test program, not by reading the regex). Fix: any METHOD_RE
+    // entry whose name matches a known class name and whose "return type" is actually one of the
+    // modifier keywords is a mis-parsed constructor — force its returnType to 'void'.
+    const classNames = new Set()
+    CLASS_RE.lastIndex = 0
+    let cm
+    while ((cm = CLASS_RE.exec(source)) !== null) classNames.add(cm[1])
+    for (const method of methods) {
+      if (classNames.has(method.name) && MODIFIER_WORDS.has(method.returnType)) {
+        method.returnType = 'void'
+      }
+    }
+
+    methods.push(...findConstructors(source, bracePositions))
+
     if (methods.length === 0) return { ok: false }
+
+    // Constructors are appended after the METHOD_RE pass regardless of where they sit in the
+    // file, so the array is no longer guaranteed sorted by position — sort explicitly before the
+    // last-to-first processing below, which depends on strictly descending bodyStart order.
+    methods.sort((a, b) => a.bodyStart - b.bodyStart)
 
     // Process from last to first: insertions happen at higher offsets first, so lower-offset
     // methods' positions remain valid in the accumulated result string.
