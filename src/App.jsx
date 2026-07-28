@@ -4,6 +4,8 @@ import { LANGUAGES } from './config/languages'
 import { buildIframeSrcdoc, buildTraceableIframeSrcdoc } from './utils/iframeRunner'
 import { buildTraceSrcdoc, buildHaskellSrcdoc } from './utils/traceVisualizer'
 import { instrumentForTrace } from './utils/jsInstrumenter'
+import { instrumentForTrace as instrumentJavaForTrace } from './utils/javaInstrumenter'
+import { runJava } from './utils/javaRunner'
 import { canHandle as haskellCanHandle, stepEval as haskellStepEval } from './utils/haskellStepper'
 import './App.css'
 
@@ -236,8 +238,13 @@ function App() {
       // Uncaught worker failure (script load error, CDN unreachable) would otherwise leave
       // every pending run promise unresolved and the Run button stuck on "Running" forever.
       worker.onerror = (e) => {
+        // TEMP diagnostic: surface filename/line/col AND the real stack (e.error?.stack,
+        // when same-origin) too, not just message, while tracking down the CheerpJ "n1"
+        // worker crash — revert to the plain message-only version once that's resolved.
+        const loc = e.filename ? ` @ ${e.filename}:${e.lineno}:${e.colno}` : ''
+        const stack = e.error?.stack ? `\n${e.error.stack}` : ''
         for (const [id, resolve] of pendingRef.current) {
-          resolve({ id, stdout: '', stderr: '', error: 'Worker error: ' + (e.message || 'failed to load or crashed') })
+          resolve({ id, stdout: '', stderr: '', error: 'Worker error: ' + (e.message || 'failed to load or crashed') + loc + stack })
         }
         pendingRef.current.clear()
       }
@@ -297,6 +304,31 @@ function App() {
         pendingRef.current.set(id, resolve)
         worker.postMessage({ id, code: codeToRun })
       })
+      const durationMs = Math.round(performance.now() - startTime)
+
+      clearTimeout(slowTimerRef.current)
+      setSlowWarning(false)
+      setOutput(result.stdout || '')
+      setError([result.stderr, result.error].filter(Boolean).join('\n'))
+      if (result.visual) setVisual(result.visual)
+      setRunStats({ durationMs })
+      setIsRunning(false)
+      setHasRun(true)
+
+    } else if (entry.executionMode === 'main-thread-java') {
+      // Java runs directly on the main thread, not in a Worker — see javaRunner.js's
+      // top-of-file comment and prd.md's Risk Register for why (CheerpJ crashes
+      // deterministically within ~1s when hosted inside a dedicated Worker; the identical
+      // sequence works fine on the main thread). Trade-off: this blocks the UI thread
+      // during compile/run, same class of trade-off already accepted for Python's
+      // uncancelable infinite-loop case.
+      const startTime = performance.now()
+      const attempt = instrumentJavaForTrace(codeToRun)
+      const result = await runJava(
+        attempt.ok ? attempt.instrumented : codeToRun,
+        codeToRun,
+        attempt.ok
+      )
       const durationMs = Math.round(performance.now() - startTime)
 
       clearTimeout(slowTimerRef.current)

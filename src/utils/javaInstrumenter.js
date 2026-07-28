@@ -3,10 +3,11 @@
 // Session 7 — reflection-based heap capture layered on top (see __CasTrace below).
 //
 // Strategy: find method declarations with a regex, use brace-counting to locate each method
-// body, inject __CasTrace.__trace("call") at entry and split `return expr;` into a temp-var +
-// trace + return for non-void methods. For void methods, inject a trace before each `return;`
-// and before the closing brace. Append the __CasTrace helper class, which writes a JSON trace
-// file to /files/cas_trace.json (readable by java.worker.js via cjFileBlob after execution).
+// body, inject __CasTrace.__trace("call") at entry and route `return expr;` through a generic
+// passthrough (__CasTrace.__traceRet) for non-void methods. For void methods, inject a trace
+// before each `return;` and before the closing brace. Append the __CasTrace helper class,
+// which writes a JSON trace file to /files/cas_trace.json (readable by javaRunner.js via
+// cjFileBlob after execution).
 //
 // __CasTrace.__classify() also does reflection-based heap capture for user-defined object
 // instances (Session 7), mirroring python.worker.js's _classify_local/_walk_heap: stable
@@ -29,8 +30,10 @@
 //   - Only method-level tracing (call + return); no per-statement line events.
 //   - Methods inside inner classes and anonymous classes are traced but the class context is not
 //     reflected in the func name in the trace — only the method name appears.
-//   - `var` (Java 10+) is used for the temp-variable that captures the return value; ECJ is
-//     invoked with `-source 17` so this is always available.
+//   - Return-value capture uses a generic static passthrough (__CasTrace.__traceRet), not a
+//     `var` temp-variable — compilation now runs under CheerpJ's Java 8 mode (see
+//     javaRunner.js), so `var` (Java 10+) isn't available; the generic passthrough works under
+//     any source level and is simpler besides (single expression, no temp-variable statement).
 //   - Reflection field access uses setAccessible(true); a field that throws under CheerpJ's
 //     security model is silently skipped rather than failing the whole trace.
 //
@@ -63,14 +66,27 @@ function parseParams(paramStr) {
   }).filter(Boolean)
 }
 
-function buildTraceCall(lineNum, event, methodName, params) {
+function namesValues(params) {
   const names = params.length
     ? 'new String[]{' + params.map(p => `"${p.name}"`).join(', ') + '}'
     : 'new String[]{}'
   const values = params.length
     ? 'new Object[]{' + params.map(p => p.name).join(', ') + '}'
     : 'new Object[]{}'
+  return { names, values }
+}
+
+function buildTraceCall(lineNum, event, methodName, params) {
+  const { names, values } = namesValues(params)
   return `__CasTrace.__trace(${lineNum}, "${event}", "${methodName}", ${names}, ${values});`
+}
+
+// Generic passthrough: evaluates `expr` exactly once, records the trace as a side effect, and
+// returns the value unchanged — avoids needing a `var` temp-variable statement (Java 10+) to
+// call __trace() before returning without double-evaluating the return expression.
+function buildTraceRetExpr(lineNum, methodName, params, expr) {
+  const { names, values } = namesValues(params)
+  return `__CasTrace.__traceRet(${expr}, ${lineNum}, "return", "${methodName}", ${names}, ${values})`
 }
 
 // Walk forward from braceOpenPos counting braces. Skips string/char literals and
@@ -139,13 +155,14 @@ function instrumentMethod(src, method) {
     // simply fall off the end (no explicit return) still get a return event.
     body = body + `\n${ind}${buildTraceCall(lineNum, 'return', name, params)}`
   } else {
-    // Non-void: split `return <expr>;` into a temp-var capture then trace then return.
-    // `var` (Java 10+) avoids needing to reproduce the exact return type — -source 17 is safe.
+    // Non-void: route `return <expr>;` through a generic passthrough (__CasTrace.__traceRet)
+    // that evaluates expr once, records the trace, and returns the value unchanged — no temp
+    // variable needed, so no `var` (Java 10+) dependency.
     // The regex is non-greedy (.+?) on a single line; multi-line returns are rare in teaching
     // code and won't be wrapped (they still compile and run, just without a return trace).
     body = body.replace(/\breturn ((?:[^;{]|\{[^}]*\})+?);/g, (_, expr) => {
       const stripped = expr.trim()
-      return `{ var __cas_ret = ${stripped}; ${buildTraceCall(lineNum, 'return', name, params)} return __cas_ret; }`
+      return `return ${buildTraceRetExpr(lineNum, name, params, stripped)};`
     })
   }
 
@@ -210,6 +227,15 @@ class __CasTrace {
         }
         sb.append("}");
         __frames.add(sb.toString());
+    }
+
+    // Generic passthrough used for instrumented return-expression sites: records the trace as
+    // a side effect and returns value unchanged, so the call site doesn't need a temp variable
+    // (and doesn't need var, which the Java 8 language level used here doesn't have).
+    public static <T> T __traceRet(T value, int line, String event, String func,
+                                    String[] names, Object[] values) {
+        __trace(line, event, func, names, values);
+        return value;
     }
 
     private static String __classify(Object v) {

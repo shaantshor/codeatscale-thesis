@@ -111,17 +111,19 @@ take 10 (map (*2) [1..])
     label: 'Java',
     emoji: '☕',
     badge: 'CheerpJ',
-    // worker mode: CheerpJ 4.3 (WASM-based OpenJDK) compiles and runs Java source
-    // entirely in the browser. Requires:
+    // main-thread mode: CheerpJ 4.3 (WASM-based OpenJDK) compiles and runs Java source
+    // directly on the main thread — NOT in a Web Worker, unlike every other language here.
+    // A research session (2026-07-27, see prd.md's Risk Register) live-verified CheerpJ
+    // crashes deterministically within ~1s when hosted inside a dedicated Worker; the
+    // identical sequence on the main thread ran fine. See src/utils/javaRunner.js for the
+    // full explanation and implementation. Requires:
     //   - self-hosted ecj.jar at code/public/ecj.jar (Eclipse Compiler for Java)
     //   - COOP/COEP headers (for SharedArrayBuffer; configured in vite.config.js)
+    // Trade-off: Java compile/run blocks the UI thread (same class of trade-off already
+    // accepted for Python's uncancelable infinite-loop case).
     // Dissertation data point: cold-start and compile time vs Python/JS baselines.
-    executionMode: 'worker',
+    executionMode: 'main-thread-java',
     cmLang: () => import('@codemirror/lang-java').then(m => m.java()),
-    workerFactory: () => new Worker(
-      new URL('../workers/java.worker.js', import.meta.url),
-      { type: 'module' }
-    ),
     starterCode: `// Java — compiled and run client-side via CheerpJ (WASM-based OpenJDK)
 // Requires ecj.jar at code/public/ecj.jar — see README Known limitations.
 
@@ -129,14 +131,22 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Hello from Java!");
 
-        // Simple linked list to demonstrate OOP (object graph in Session 7)
-        Node head = new Node(1, new Node(2, new Node(3, null)));
-        Node curr = head;
-        while (curr != null) {
-            System.out.print(curr.val + " ");
-            curr = curr.next;
-        }
+        // Simple linked list to demonstrate OOP (object graph in Session 7).
+        // Walked via a recursive method rather than a while-loop over local
+        // variables — Java's step tracer only captures method PARAMETERS, not
+        // local variables, so passing each node as an argument (recursion is a
+        // natural fit) is what makes the object graph actually appear.
+        Node third = new Node(3, null);
+        Node second = new Node(2, third);
+        Node first = new Node(1, second);
+        printList(first);
         System.out.println();
+    }
+
+    static void printList(Node n) {
+        if (n == null) return;
+        System.out.print(n.val + " ");
+        printList(n.next);
     }
 }
 
