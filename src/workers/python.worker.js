@@ -265,6 +265,68 @@ const TRACER_CLEANUP = `
 _sys.settrace(None)
 `
 
+// Pyodide runs the whole program inside an already-active event loop
+// (runPythonAsync's own WebLoop), so a user's own top-level asyncio.run(coro)
+// call always raises "asyncio.run() cannot be called from a running event
+// loop" - a very common gotcha for anyone pasting a standard asyncio
+// tutorial example, not specific to anything this project does. Since the
+// whole program already runs as Pyodide's top-level async exec (top-level
+// await is valid there), a call to asyncio's run() is rewritten to
+// await (coro) - semantically equivalent for a single top-level run, and it
+// avoids ever creating a second nested event loop.
+//
+// The first version of this only matched the literal text "asyncio.run(",
+// which misses the equally common "from asyncio import run" style, where
+// the call site is just a bare run(coro) - exactly the pattern that still
+// failed after that first fix shipped. This version actually looks at how
+// asyncio was imported: both "import asyncio" / "import asyncio as X"
+// (giving X.run() a rewrite target) and "from asyncio import run" /
+// "from asyncio import run as Y" (giving a bare run()/Y() a rewrite
+// target, only when that import was actually seen - a coincidentally
+// named local run() is never touched otherwise) are tracked.
+//
+// Text-based, not AST-based (matches the project's existing instrumentation
+// approach) - documented limitation: a call written across multiple lines,
+// one with extra kwargs like asyncio.run(coro, debug=True), or the exact
+// import/call text appearing inside a comment/string, won't be handled
+// correctly. Purely a find-and-replace within existing lines, so it never
+// changes the line count and can't disturb the _LINE_OFF bookkeeping below.
+function _rewriteAsyncioRun(src) {
+  let out = src
+
+  const moduleAliasRe = /^\s*import\s+asyncio(?:\s+as\s+(\w+))?\s*$/gm
+  const moduleAliases = new Set(['asyncio'])
+  let m
+  while ((m = moduleAliasRe.exec(src))) {
+    if (m[1]) moduleAliases.add(m[1])
+  }
+  moduleAliases.forEach((alias) => {
+    const re = new RegExp('\\b' + alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.run\\(', 'g')
+    out = out.replace(re, 'await (')
+  })
+
+  const fromImportRe = /^\s*from\s+asyncio\s+import\s+([^\n#]+)/gm
+  const bareNames = new Set()
+  while ((m = fromImportRe.exec(src))) {
+    m[1].split(',').forEach((raw) => {
+      const n = raw.trim()
+      const asMatch = n.match(/^run\s+as\s+(\w+)$/)
+      if (asMatch) bareNames.add(asMatch[1])
+      else if (n === 'run') bareNames.add('run')
+    })
+  }
+  bareNames.forEach((name) => {
+    // Only rewrite calls that look like a standalone statement at the start
+    // of a line (optionally indented) - matches how asyncio.run(...) is
+    // always used in practice, and keeps this from touching some unrelated
+    // expression that merely happens to contain the same name mid-line.
+    const re = new RegExp('(^|\\n)(\\s*)' + name + '\\(', 'g')
+    out = out.replace(re, (full, pre, indent) => pre + indent + 'await (')
+  })
+
+  return out
+}
+
 self.onmessage = async ({ data: { id, code } }) => {
   let pyodide
   try {
@@ -283,10 +345,15 @@ self.onmessage = async ({ data: { id, code } }) => {
   stdoutLines = []
   stderrLines = []
 
+  // See _rewriteAsyncioRun's own comment above for why this is needed. The
+  // user's own source (the `code` variable) is left untouched for display;
+  // only the copy actually executed is rewritten.
+  const runnableCode = _rewriteAsyncioRun(code)
+
   try {
     const beforeUser = `_LINE_OFF = 0\n` + TRACER_SETUP + '\n'
     const lineOff = beforeUser.split('\n').length - 1
-    const fullCode = `_LINE_OFF = ${lineOff}\n` + TRACER_SETUP + '\n' + code + '\n' + TRACER_CLEANUP
+    const fullCode = `_LINE_OFF = ${lineOff}\n` + TRACER_SETUP + '\n' + runnableCode + '\n' + TRACER_CLEANUP
 
     await pyodide.runPythonAsync(fullCode)
     const traceJson = await pyodide.runPythonAsync(
