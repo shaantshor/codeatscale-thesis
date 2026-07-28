@@ -21,9 +21,9 @@ const pyodideReady = (async () => {
 // Object graph extension (Session 1, 2026-07-18):
 // _classify_local() replaces the old _classify() tuple-returning function.
 // For user-defined class instances it captures:
-//   oid   — stable integer object ID (via _get_oid, backed by _OBJ_ID_MAP)
-//   cls   — class name (type(v).__name__)
-//   fields — { field_name: classified_entry } from v.__dict__, depth-capped at 5
+//   oid   - stable integer object ID (via _get_oid, backed by _OBJ_ID_MAP)
+//   cls   - class name (type(v).__name__)
+//   fields - { field_name: classified_entry } from v.__dict__, depth-capped at 5
 // Circular refs are represented as kind='ref' with oid pointing back to the already-seen object.
 // _walk_heap() collects all reachable object entries from locals into a flat heap snapshot:
 //   { str(oid): { cls, r, fields } }
@@ -73,32 +73,59 @@ def _classify_local(v, depth=0, _seen=None):
             r = repr(v)
             return {'k': 'str', 'r': r[:120] if len(r) > 120 else r}
         if isinstance(v, (list, tuple)):
+            kind = 'list' if isinstance(v, list) else 'tuple'
+            vid = id(v)
+            # Container-identity cycle guard: a list/tuple that (directly or through nested
+            # containers) contains itself used to be safe only by accident, because the old
+            # code never recursed into non-object elements at all. Once every element started
+            # getting fully classified (nesting fix below), a self-referential list such as
+            # 'a = []; a.append(a)' produced an entry tree that was itself circular, which
+            # _collect_heap then walked with no cycle guard of its own - an uncaught
+            # RecursionError that aborted the whole trace, confirmed against real Pyodide WASM
+            # (not just caught-and-swallowed the way _classify_local's own try/except handles
+            # unrelated errors). Same identity-set mechanism already used for objects, extended
+            # to list/tuple containers.
+            if vid in _seen:
+                return {'k': kind, 'r': '<circular ' + kind + '>', 'items': ['<circular>']}
+            new_seen = _seen | {vid}
             items = []
             item_entries = []
-            has_obj_item = False
+            has_struct = False
             for el in list(v)[:50]:
                 try:
                     ir = repr(el)
                 except Exception:
                     ir = '?'
                 items.append(ir[:60] if len(ir) > 60 else ir)
-                # Elements that are user-defined object instances also get fully classified so
-                # _walk_heap/_collect_heap can pull them into the object graph. 'items' (above)
-                # stays display-strings-only and untouched — that's what the array-box UI reads,
-                # and it already has its own working swap/compare-diff logic that assumes plain
-                # strings; item_entries is purely additive, only consumed by heap collection.
-                if _is_obj(el):
-                    has_obj_item = True
-                    item_entries.append(_classify_local(el, depth + 1, _seen))
+                # Every element is fully classified (not just direct user objects) so a list/tuple
+                # nested inside this list/tuple, or a dict nested inside it, can carry its own
+                # objects through to _collect_heap too - not just direct object elements.
+                # 'items' (above) stays display-strings-only and untouched - that's what the
+                # array-box UI reads, and it already has its own working swap/compare-diff logic
+                # that assumes plain strings; item_entries is purely additive, only consumed by
+                # heap collection.
+                el_entry = _classify_local(el, depth + 1, new_seen)
+                ek = el_entry.get('k')
+                if ek in ('obj', 'ref') or (ek in ('list', 'tuple') and 'item_entries' in el_entry) or (ek == 'dict' and 'entries' in el_entry):
+                    has_struct = True
+                    item_entries.append(el_entry)
                 else:
                     item_entries.append(None)
-            kind = 'list' if isinstance(v, list) else 'tuple'
             r = repr(v)
             entry = {'k': kind, 'r': r[:120] if len(r) > 120 else r, 'items': items}
-            if has_obj_item:
+            if has_struct:
                 entry['item_entries'] = item_entries
             return entry
         if isinstance(v, dict):
+            vid = id(v)
+            # Same container-identity cycle guard as list/tuple above, for a self-referential
+            # dict (e.g. 'd = {}; d["self"] = d') - dict values were already recursed into
+            # unconditionally before this session's nesting fix, so this specific crash mode
+            # predates that fix, but is closed here at the same time since the mechanism is
+            # identical.
+            if vid in _seen:
+                return {'k': 'dict', 'r': '<circular dict>'}
+            new_seen = _seen | {vid}
             r = repr(v)
             entry = {'k': 'dict', 'r': r[:120] if len(r) > 120 else r}
             has_obj_val = False
@@ -109,8 +136,9 @@ def _classify_local(v, depth=0, _seen=None):
                         kr = repr(dk)
                     except Exception:
                         kr = '?'
-                    val_entry = _classify_local(dv, depth + 1, _seen)
-                    if val_entry.get('k') in ('obj', 'ref'):
+                    val_entry = _classify_local(dv, depth + 1, new_seen)
+                    vk = val_entry.get('k')
+                    if vk in ('obj', 'ref') or (vk in ('list', 'tuple') and 'item_entries' in val_entry) or (vk == 'dict' and 'entries' in val_entry):
                         has_obj_val = True
                     dict_entries.append({'key': kr[:40] if len(kr) > 40 else kr, 'value': val_entry})
             except Exception:
@@ -154,7 +182,7 @@ def _collect_heap(entry, heap, visited):
     if not isinstance(entry, dict):
         return
     # list/tuple entries are never heap objects themselves, but (since the list/tuple fix) may
-    # carry item_entries for elements that ARE objects — walk into those without registering the
+    # carry item_entries for elements that ARE objects - walk into those without registering the
     # list/tuple itself in the heap.
     if entry.get('k') in ('list', 'tuple'):
         for ival in entry.get('item_entries', []) or []:
@@ -200,7 +228,7 @@ def _tracer(frame, event, arg):
         _truncated[0] = True
         return None
     fname = frame.f_code.co_name
-    # __init__ is deliberately let through even though it starts with '_' — it's the one dunder
+    # __init__ is deliberately let through even though it starts with '_' - it's the one dunder
     # that's unambiguously useful to watch (field assignment during construction) and is always
     # an explicit, predictable call (object construction), unlike __repr__/__eq__/__add__ etc.
     # which fire as hidden side effects of print()/==/+ and would flood the step debugger with
