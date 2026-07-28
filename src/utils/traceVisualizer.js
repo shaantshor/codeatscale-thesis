@@ -97,12 +97,24 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 .arr-box.arr-hl{background:rgba(179,157,219,0.12);}
 @keyframes box-pulse{0%{background:rgba(179,157,219,0.5);}100%{background:rgba(179,157,219,0.24);}}
 
-#heap-section{display:none;flex-shrink:0;position:relative;max-height:42%;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid rgba(255,255,255,0.08);}
+#heap-section{display:none;flex-shrink:0;position:relative;max-height:48%;overflow:auto;border-bottom:1px solid rgba(255,255,255,0.08);}
 #heap-section.has-heap{display:block;}
+
+/* Drag handles so the heap/canvas/variables rows and columns can be expanded by hand inside
+   the Visual pane itself, rather than being stuck at their default proportions. Only shown
+   when there's actually something to resize (the row handle needs heap objects present; the
+   column handle is always available since Variables is always shown). */
+#heap-resizer{display:none;height:6px;flex-shrink:0;cursor:row-resize;background:rgba(255,255,255,0.02);position:relative;}
+#heap-section.has-heap + #heap-resizer{display:block;}
+#heap-resizer:hover,#heap-resizer.resizing{background:rgba(179,157,219,0.28);}
+#heap-resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:2px;background:rgba(255,255,255,0.16);border-radius:2px;}
+#vpanel-resizer{width:6px;flex-shrink:0;cursor:col-resize;background:rgba(255,255,255,0.02);position:relative;}
+#vpanel-resizer:hover,#vpanel-resizer.resizing{background:rgba(179,157,219,0.28);}
+#vpanel-resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:28px;background:rgba(255,255,255,0.16);border-radius:2px;}
 #heap-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:rgba(255,255,255,0.22);padding:7px 14px 0;}
-#heap-boxes{display:flex;gap:10px;flex-wrap:nowrap;padding:7px 14px 10px;}
+#heap-boxes{position:relative;padding:7px 14px 10px;}
 #heap-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
-.heap-obj{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.16);border-radius:8px;min-width:110px;max-width:190px;flex-shrink:0;overflow:hidden;animation:frame-enter 0.18s ease-out;}
+.heap-obj{position:absolute;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.16);border-radius:8px;min-width:110px;max-width:190px;overflow:hidden;animation:frame-enter 0.18s ease-out;}
 .heap-obj-head{background:rgba(255,255,255,0.04);padding:5px 9px;font-size:10.5px;font-weight:700;color:#b39ddb;border-bottom:1px solid rgba(255,255,255,0.12);font-family:'Fira Code',Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .heap-field{padding:3px 9px;font-size:10.5px;font-family:'Fira Code',Consolas,monospace;display:flex;gap:4px;align-items:center;min-height:20px;}
 .heap-fk{color:rgba(255,255,255,0.38);flex-shrink:0;}
@@ -122,9 +134,18 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
 .ctrl-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .ctrl-btn:hover:not(:disabled){background:rgba(255,255,255,0.12);color:#fff;}
 .ctrl-btn:disabled{opacity:0.22;cursor:default;}
-#btn-play{background:rgba(44,187,93,0.12);border-color:rgba(44,187,93,0.3);color:#2cbb5d;flex:1;justify-content:center;}
-#btn-play:hover:not(:disabled){background:rgba(44,187,93,0.2);}
-#btn-play.playing{background:rgba(255,192,30,0.12);border-color:rgba(255,192,30,0.3);color:#ffc01e;}
+/* Play is the only thing that starts autoplay now (no more spacebar shortcut), so it's sized
+   and lit up a bit more than the plain step buttons around it — a soft pulsing ring while
+   paused invites a deliberate click rather than the animation ever advancing unprompted. */
+#btn-play{background:rgba(44,187,93,0.14);border:1.5px solid rgba(44,187,93,0.45);color:#2cbb5d;flex:1.6;justify-content:center;font-size:13px;padding:7px 10px;animation:play-pulse 2.4s ease-out infinite;}
+#btn-play:hover:not(:disabled){background:rgba(44,187,93,0.24);}
+#btn-play:disabled{animation:none;}
+#btn-play.playing{background:rgba(255,192,30,0.14);border-color:rgba(255,192,30,0.5);color:#ffc01e;animation:none;}
+@keyframes play-pulse{
+  0%{box-shadow:0 0 0 0 rgba(44,187,93,0.4);}
+  70%{box-shadow:0 0 0 7px rgba(44,187,93,0);}
+  100%{box-shadow:0 0 0 0 rgba(44,187,93,0);}
+}
 #speed-select{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:rgba(255,255,255,0.45);font-size:11px;padding:4px 6px;outline:none;cursor:pointer;}
 .kbd-hint{font-size:10px;color:rgba(255,255,255,0.15);text-align:center;letter-spacing:0.2px;}
 .kbd{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:3px;padding:0 4px;font-size:9.5px;color:rgba(255,255,255,0.3);}
@@ -202,8 +223,10 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
               </defs>
             </svg>
           </div>
+          <div id="heap-resizer" title="Drag to resize"></div>
           <div id="anim-canvas"></div>
         </div>
+        <div id="vpanel-resizer" title="Drag to resize"></div>
         <div id="vars-panel">
           <div class="ph"><span>Variables</span></div>
           <div id="vars-list"></div>
@@ -216,10 +239,10 @@ body{background:#1a1a1a;color:#eff1f6;font-family:-apple-system,BlinkMacSystemFo
           <button class="ctrl-btn" id="btn-play" disabled>&#9654; Play</button>
           <button class="ctrl-btn" id="btn-next" disabled>Next &#9654;</button>
           <select id="speed-select" title="Speed">
-            <option value="2400">0.5x</option>
-            <option value="1400" selected>1x</option>
-            <option value="800">2x</option>
-            <option value="400">4x</option>
+            <option value="3800">0.5x</option>
+            <option value="2200" selected>1x</option>
+            <option value="1250">2x</option>
+            <option value="650">4x</option>
           </select>
         </div>
         <div class="kbd-hint">
@@ -498,9 +521,101 @@ function buildArrayCard(name, entry, prevEntry, lineText, allLocals) {
   return card;
 }
 
+// Force-directed layout for the object graph. A hand-rolled spring/repulsion simulation
+// rather than the actual d3-force npm package — the prd.md risk register flags that d3-force's
+// own internal timer-driven tick loop does not reliably converge inside a sandboxed iframe
+// srcdoc (no real requestAnimationFrame cadence guarantees, no network access assumed for a
+// CDN fetch of the library). The documented mitigation is "run simulation synchronously, enough
+// ticks to converge, no requestAnimationFrame" — that's exactly what this does: a fixed number
+// of synchronous iterations of the same physical model d3-force uses (many-body repulsion +
+// link springs + weak centering), then positions are applied once, so there is no per-frame
+// timing dependency anywhere in the layout itself. Runs entirely off DOM measurements taken
+// synchronously right after the boxes are appended (forces one reflow, not timing-sensitive).
+function computeForceLayout(oids, sizes, edges, width) {
+  var cols = Math.max(1, Math.ceil(Math.sqrt(oids.length)));
+  var nodes = oids.map(function(oid, i) {
+    var col = i % cols, row = Math.floor(i / cols);
+    return {
+      id: oid,
+      w: sizes[oid].w,
+      h: sizes[oid].h,
+      x: 70 + col * 170 + (Math.random() - 0.5) * 20,
+      y: 60 + row * 130 + (Math.random() - 0.5) * 20,
+      vx: 0, vy: 0
+    };
+  });
+  var byId = {};
+  nodes.forEach(function(n) { byId[n.id] = n; });
+  var links = edges.filter(function(e) { return byId[e.source] && byId[e.target] && e.source !== e.target; });
+
+  var CHARGE = 26000;
+  var LINK_DIST = 150;
+  var ITERATIONS = 260;
+  var centerX = width / 2;
+
+  for (var iter = 0; iter < ITERATIONS; iter++) {
+    nodes.forEach(function(n) { n.fx = 0; n.fy = 0; });
+
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        var a = nodes[i], b = nodes[j];
+        var dx = a.x - b.x, dy = a.y - b.y;
+        if (dx === 0 && dy === 0) { dx = (Math.random() - 0.5) * 2; dy = (Math.random() - 0.5) * 2; }
+        var distSq = dx * dx + dy * dy;
+        var dist = Math.sqrt(distSq) || 1;
+        var minDist = (a.w + b.w) / 2 + 30;
+        var force = CHARGE / distSq;
+        if (dist < minDist) force *= 4;
+        var fx = (dx / dist) * force, fy = (dy / dist) * force;
+        a.fx += fx; a.fy += fy;
+        b.fx -= fx; b.fy -= fy;
+      }
+    }
+
+    links.forEach(function(e) {
+      var a = byId[e.source], b = byId[e.target];
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var diff = (dist - LINK_DIST) * 0.05;
+      var fx = (dx / dist) * diff, fy = (dy / dist) * diff;
+      a.fx += fx; a.fy += fy;
+      b.fx -= fx; b.fy -= fy;
+    });
+
+    nodes.forEach(function(n) {
+      n.fx += (centerX - n.x) * 0.006;
+      n.fy += (140 - n.y) * 0.004;
+    });
+
+    nodes.forEach(function(n) {
+      n.vx = (n.vx + n.fx) * 0.7;
+      n.vy = (n.vy + n.fy) * 0.7;
+      n.x += n.vx;
+      n.y += n.vy;
+    });
+  }
+
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(function(n) {
+    minX = Math.min(minX, n.x - n.w / 2);
+    minY = Math.min(minY, n.y - n.h / 2);
+    maxX = Math.max(maxX, n.x + n.w / 2);
+    maxY = Math.max(maxY, n.y + n.h / 2);
+  });
+  var offX = 20 - minX, offY = 16 - minY;
+
+  var positions = {};
+  nodes.forEach(function(n) {
+    positions[n.id] = { left: n.x - n.w / 2 + offX, top: n.y - n.h / 2 + offY };
+  });
+  return { positions: positions, width: (maxX - minX) + 40, height: (maxY - minY) + 32 };
+}
+
 // Renders heap objects (user-defined class instances) in the dedicated #heap-section strip
 // above the variable cards. Visible only when the current step's frame carries a heap snapshot.
-// Fixed column layout (left-to-right by oid) — d3-force layout replaces this in Session 9.
+// Boxes are laid out via computeForceLayout (Session 9) instead of the earlier fixed-column
+// placeholder — sizes are measured synchronously right after the (invisible) boxes are
+// appended, the layout is computed, then positions are applied in one pass.
 // SVG arrows are drawn async via rAF, guarded by a generation counter so rapid stepping never
 // leaves stale arrows from a previous renderHeap call on screen.
 var __heapGen = 0;
@@ -515,30 +630,73 @@ function renderHeap(step) {
   }
   section.classList.add('has-heap');
   boxes.innerHTML = '';
+  boxes.style.width = '';
+  boxes.style.height = '';
   Array.prototype.slice.call(svg.querySelectorAll('path')).forEach(function(p){ p.parentNode.removeChild(p); });
 
   var gen = ++__heapGen;
-  Object.keys(heap).forEach(function(oid) {
+  var oids = Object.keys(heap);
+  var edges = [];
+  var divById = {};
+
+  // Renders one heap-field row for either an object's field or a dict's key/value entry —
+  // shared so dict cards and object-instance cards reuse the exact same ref-detection,
+  // arrow-edge registration, and data-field-ref markup that drawHeapArrows() already reads.
+  function heapRowHtml(oid, labelEsc, sep, fv, edges) {
+    var isRef = fv && (fv.k === 'obj' || fv.k === 'ref') && fv.oid != null;
+    if (isRef) edges.push({ source: oid, target: String(fv.oid) });
+    var valHtml = isRef
+      ? '<span class="heap-fv heap-fref" data-ref-oid="'+fv.oid+'">&#8594; '+esc(fv.cls || ('obj#'+fv.oid))+'</span>'
+      : '<span class="heap-fv" style="color:'+kindColor(fv.k)+'">'+esc(shortLabel(fv))+'</span>';
+    return '<div class="heap-field" data-field-ref="'+(isRef ? fv.oid : '')+'">'+
+      '<span class="heap-fk">'+labelEsc+'</span>'+
+      '<span class="heap-feq">'+sep+'</span>'+valHtml+'</div>';
+  }
+
+  oids.forEach(function(oid) {
     var obj = heap[oid];
+    var isDict = obj.kind === 'dict';
     var div = document.createElement('div');
-    div.className = 'heap-obj';
+    div.className = 'heap-obj' + (isDict ? ' heap-dict-obj' : '');
     div.setAttribute('data-oid', oid);
-    var fields = obj.fields || {};
-    var fieldsHtml = Object.keys(fields).map(function(fn) {
-      var fv = fields[fn];
-      var isRef = (fv.k === 'obj' || fv.k === 'ref') && fv.oid != null;
-      var valHtml = isRef
-        ? '<span class="heap-fv heap-fref" data-ref-oid="'+fv.oid+'">&#8594; '+(fv.cls || ('obj#'+fv.oid))+'</span>'
-        : '<span class="heap-fv" style="color:'+kindColor(fv.k)+'">'+esc(shortLabel(fv))+'</span>';
-      return '<div class="heap-field" data-field-ref="'+(isRef ? fv.oid : '')+'">'+
-        '<span class="heap-fk">'+esc(fn)+'</span>'+
-        '<span class="heap-feq">=</span>'+valHtml+'</div>';
-    }).join('');
+    div.style.visibility = 'hidden';
+    var bodyHtml;
+    if (isDict) {
+      var entries = obj.entries || [];
+      bodyHtml = entries.map(function(de) {
+        return heapRowHtml(oid, esc(de.key), ':', de.value, edges);
+      }).join('');
+    } else {
+      var fields = obj.fields || {};
+      bodyHtml = Object.keys(fields).map(function(fn) {
+        return heapRowHtml(oid, esc(fn), '=', fields[fn], edges);
+      }).join('');
+    }
     div.innerHTML =
-      '<div class="heap-obj-head">'+esc(obj.cls)+'<span style="opacity:0.4;font-weight:400"> #'+oid+'</span></div>'+
-      (fieldsHtml || '<div class="heap-field"><span style="color:rgba(255,255,255,0.2);font-style:italic">&#8960;</span></div>');
+      '<div class="heap-obj-head">'+esc(isDict ? 'dict' : obj.cls)+'<span style="opacity:0.4;font-weight:400"> #'+oid+'</span></div>'+
+      (bodyHtml || '<div class="heap-field"><span style="color:rgba(255,255,255,0.2);font-style:italic">&#8960;</span></div>');
     boxes.appendChild(div);
+    divById[oid] = div;
   });
+
+  var sizes = {};
+  oids.forEach(function(oid) {
+    var d = divById[oid];
+    sizes[oid] = { w: d.offsetWidth, h: d.offsetHeight };
+  });
+
+  var containerWidth = Math.max(section.clientWidth - 28, 200);
+  var layout = computeForceLayout(oids, sizes, edges, containerWidth);
+
+  oids.forEach(function(oid) {
+    var d = divById[oid];
+    var pos = layout.positions[oid];
+    d.style.left = pos.left + 'px';
+    d.style.top = pos.top + 'px';
+    d.style.visibility = 'visible';
+  });
+  boxes.style.width = Math.max(layout.width, containerWidth) + 'px';
+  boxes.style.height = layout.height + 'px';
 
   requestAnimationFrame(function() {
     if (gen !== __heapGen) return;
@@ -546,10 +704,15 @@ function renderHeap(step) {
   });
 }
 
+// Coordinates are computed from offsetLeft/offsetTop relative to #heap-boxes (the force-layout
+// container) rather than getBoundingClientRect — the boxes can now exceed the visible section
+// and scroll (force layout can produce a 2D arrangement, not just one row), and offset-based
+// math stays correct regardless of scroll position since it never touches viewport coordinates.
 function drawHeapArrows(section, boxes, svg) {
-  svg.setAttribute('width', section.offsetWidth);
-  svg.setAttribute('height', section.offsetHeight);
-  var sRect = section.getBoundingClientRect();
+  svg.style.left = boxes.offsetLeft + 'px';
+  svg.style.top = boxes.offsetTop + 'px';
+  svg.setAttribute('width', boxes.offsetWidth);
+  svg.setAttribute('height', boxes.offsetHeight);
   var boxEls = {};
   Array.prototype.slice.call(boxes.querySelectorAll('.heap-obj[data-oid]')).forEach(function(el) {
     boxEls[el.getAttribute('data-oid')] = el;
@@ -562,14 +725,12 @@ function drawHeapArrows(section, boxes, svg) {
     while (srcBox && !srcBox.classList.contains('heap-obj')) srcBox = srcBox.parentNode;
     var tgtBox = boxEls[String(targetOid)];
     if (!srcBox || !tgtBox || srcBox === tgtBox) return;
-    var sr = fieldEl.getBoundingClientRect();
     var tHead = tgtBox.querySelector('.heap-obj-head');
     if (!tHead) return;
-    var tr = tHead.getBoundingClientRect();
-    var x1 = sr.right - sRect.left;
-    var y1 = sr.top + sr.height / 2 - sRect.top;
-    var x2 = tr.left - sRect.left;
-    var y2 = tr.top + tr.height / 2 - sRect.top;
+    var x1 = srcBox.offsetLeft + fieldEl.offsetLeft + fieldEl.offsetWidth;
+    var y1 = srcBox.offsetTop + fieldEl.offsetTop + fieldEl.offsetHeight / 2;
+    var x2 = tgtBox.offsetLeft;
+    var y2 = tgtBox.offsetTop + tHead.offsetHeight / 2;
     var dx = Math.max(18, Math.abs(x2 - x1) * 0.45);
     var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', 'M'+x1+','+y1+' C'+(x1+dx)+','+y1+' '+(x2-dx)+','+y2+' '+x2+','+y2);
@@ -693,8 +854,17 @@ function setStep(n) {
   currentStep = n;
   renderStep(n);
 }
-function nextStep() { setStep(currentStep+1); }
-function prevStep() { setStep(currentStep-1); }
+// Manual Next/Prev now wrap around — reaching the end and pressing Next again loops back to
+// the first step (and pressing Prev at the first step wraps to the last), independent of
+// whether autoplay ever ran. This is separate from autoPlay's own end-of-pass handling below.
+function nextStep() {
+  if (currentStep >= steps.length - 1) { setStep(0); return; }
+  setStep(currentStep + 1);
+}
+function prevStep() {
+  if (currentStep <= 0) { setStep(steps.length - 1); return; }
+  setStep(currentStep - 1);
+}
 
 function togglePlay() {
   playing = !playing;
@@ -702,6 +872,10 @@ function togglePlay() {
   if (playing) {
     btn.innerHTML = '&#10074;&#10074; Pause';
     btn.classList.add('playing');
+    // If we're already sitting at (or past) the last step, restart from the beginning so
+    // clicking Play is always an obvious "go" rather than immediately hitting the end-of-steps
+    // check in autoPlay and stopping again with no visible movement.
+    if (currentStep >= steps.length - 1) currentStep = -1;
     autoPlay();
   } else {
     btn.innerHTML = '&#9654; Play';
@@ -710,6 +884,12 @@ function togglePlay() {
   }
 }
 
+// One full pass per Play click, not an unattended infinite loop: autoplay stops once it
+// reaches the last step, rather than looping back and continuing on its own. Starting another
+// pass is always available — click Play again (togglePlay above resets to the start first) —
+// but the tool never keeps animating indefinitely without the user asking for that specific
+// run, matching the "no unprompted movement" principle from the spacebar-accident fix while
+// still making a fresh run one deliberate click away.
 function autoPlay() {
   if (!playing) return;
   if (currentStep >= steps.length-1) {
@@ -719,7 +899,7 @@ function autoPlay() {
     btn.classList.remove('playing');
     return;
   }
-  nextStep();
+  setStep(currentStep + 1);
   var speed = parseInt(document.getElementById('speed-select').value, 10);
   playTimer = setTimeout(autoPlay, speed);
 }
@@ -760,6 +940,59 @@ document.getElementById('params-header').addEventListener('click', function() {
   left.classList.toggle('collapsed');
   document.getElementById('left-toggle-btn').innerHTML = left.classList.contains('collapsed') ? '+' : '&minus;';
 });
+
+// Lets the Variables column and the Heap Objects row be expanded by hand inside the Visual
+// pane itself, rather than being stuck at fixed proportions. Plain mousedown/mousemove/mouseup
+// (not the drag-and-drop API) so it behaves the same as the outer App's own pane-resize
+// handles. Sizes are session-only (not persisted) — this is a reading aid for the current run,
+// not a saved layout preference.
+(function setupInternalResizers() {
+  var vResizer = document.getElementById('vpanel-resizer');
+  var varsPanel = document.getElementById('vars-panel');
+  var mainRow = document.getElementById('main-row');
+  var draggingV = false;
+
+  vResizer.addEventListener('mousedown', function(e) {
+    draggingV = true;
+    vResizer.classList.add('resizing');
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  var hResizer = document.getElementById('heap-resizer');
+  var heapSection = document.getElementById('heap-section');
+  var canvasWrap = document.getElementById('canvas-wrap');
+  var draggingH = false;
+
+  hResizer.addEventListener('mousedown', function(e) {
+    draggingH = true;
+    hResizer.classList.add('resizing');
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (draggingV) {
+      var rowRect = mainRow.getBoundingClientRect();
+      var newWidth = rowRect.right - e.clientX;
+      newWidth = Math.max(140, Math.min(rowRect.width - 200, newWidth));
+      varsPanel.style.width = newWidth + 'px';
+    }
+    if (draggingH) {
+      var wrapRect = canvasWrap.getBoundingClientRect();
+      var newHeight = e.clientY - wrapRect.top;
+      var maxHeight = wrapRect.height * 0.8;
+      newHeight = Math.max(50, Math.min(maxHeight, newHeight));
+      heapSection.style.maxHeight = newHeight + 'px';
+      heapSection.style.height = newHeight + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (draggingV) { draggingV = false; vResizer.classList.remove('resizing'); document.body.style.userSelect = ''; }
+    if (draggingH) { draggingH = false; hResizer.classList.remove('resizing'); document.body.style.userSelect = ''; }
+  });
+})();
 
 document.addEventListener('keydown', function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -875,7 +1108,16 @@ function renderParams(params) {
       var cur = p.value;
       var maxV = Math.max(20, Math.ceil(cur*5));
       var minV = cur < 0 ? Math.floor(cur*3) : 0;
-      var lastOrig = p.original;
+      // appliedOrig tracks the text as it actually exists in the parent App's source right
+      // now — it must only advance when a code_patch message is actually SENT, not on every
+      // 'input' tick while dragging. Dragging fires many 'input' events in quick succession,
+      // but the postMessage below is debounced (only the last one in a burst actually fires).
+      // The previous version advanced its "from" tracker on every tick regardless, so after a
+      // fast drag the debounced message's 'from' string was some skipped-over intermediate
+      // value (e.g. "num_times=6") that never actually got applied to the real source (still
+      // "num_times=3") — App.jsx's codeRef.current.replace(from, to) found no match, silently
+      // no-opped, and the slider looked like it had no effect on the running visualization.
+      var appliedOrig = p.original;
       card.innerHTML =
         '<div class="p-name">'+esc(p.name)+'</div>'+
         '<div class="p-cur" id="pc-'+esc(p.name)+'">'+cur+'</div>'+
@@ -891,11 +1133,15 @@ function renderParams(params) {
         disp.textContent = newV;
         slider.value = newV;
         numIn.value = newV;
-        var from = lastOrig;
-        var to = lastOrig.replace(/(\\d+(?:\\.\\d+)?)$/, String(newV));
-        lastOrig = to;
+        // Computed relative to appliedOrig (the last value actually confirmed applied), not
+        // relative to whatever the previous un-sent tick calculated — so every pending patch
+        // in a debounce burst independently describes "from the real current source" all the
+        // way to the latest dragged value, and only the last one need ever actually fire.
+        var to = appliedOrig.replace(/(\\d+(?:\\.\\d+)?)$/, String(newV));
         clearTimeout(debT);
         debT = setTimeout(function() {
+          var from = appliedOrig;
+          appliedOrig = to;
           window.parent.postMessage({ type:'code_patch', from:from, to:to }, '*');
         }, 400);
       }
@@ -1009,8 +1255,14 @@ button{
 }
 button:hover{background:#333;border-color:rgba(255,255,255,0.2);}
 button:disabled{opacity:0.3;cursor:default;}
-#btn-run{background:#1e3a20;border-color:#2cbb5d;color:#2cbb5d;}
+#btn-run{background:#1e3a20;border-color:#2cbb5d;color:#2cbb5d;font-weight:700;padding:5px 14px;animation:hs-play-pulse 2.4s ease-out infinite;}
 #btn-run:hover{background:#1e4a20;}
+#btn-run.playing{background:#3a2f10;border-color:#ffc01e;color:#ffc01e;animation:none;}
+@keyframes hs-play-pulse{
+  0%{box-shadow:0 0 0 0 rgba(44,187,93,0.4);}
+  70%{box-shadow:0 0 0 7px rgba(44,187,93,0);}
+  100%{box-shadow:0 0 0 0 rgba(44,187,93,0);}
+}
 .speed-sel{
   background:#2a2a2a;border:1px solid rgba(255,255,255,0.1);color:#eff1f6;
   border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;
@@ -1079,14 +1331,14 @@ button:disabled{opacity:0.3;cursor:default;}
 <div id="controls">
   <button id="btn-prev" disabled>◀ Prev</button>
   <button id="btn-next">Next ▶</button>
-  <button id="btn-run" id="btn-play">▶ Play</button>
+  <button id="btn-run">▶ Play</button>
   <button id="btn-first" title="Jump to start">⏮</button>
   <button id="btn-last" title="Jump to end">⏭</button>
   <select class="speed-sel" id="speed-sel">
-    <option value="1800">0.5x</option>
-    <option value="900" selected>1x</option>
-    <option value="450">2x</option>
-    <option value="225">4x</option>
+    <option value="3200">0.5x</option>
+    <option value="1600" selected>1x</option>
+    <option value="800">2x</option>
+    <option value="400">4x</option>
   </select>
 </div>
 <div id="scrubber-row">
@@ -1170,6 +1422,7 @@ function render() {
   btnFirst.disabled = cur <= 0;
   btnLast.disabled = cur >= total - 1;
   btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+  btnPlay.classList.toggle('playing', playing);
 }
 
 function goTo(n) {
@@ -1177,11 +1430,20 @@ function goTo(n) {
   render();
 }
 
-function step(dir) { goTo(cur + dir); }
+// Manual Prev/Next wrap around, independent of autoplay: Next at the last step loops back to
+// the first, Prev at the first step wraps to the last.
+function step(dir) {
+  if (dir > 0 && cur >= STEPS.length - 1) { goTo(0); return; }
+  if (dir < 0 && cur <= 0) { goTo(STEPS.length - 1); return; }
+  goTo(cur + dir);
+}
 
 function startPlay() {
   playing = true;
   btnPlay.textContent = '⏸ Pause';
+  // Restart from the beginning if we're at (or past) the end, so Play is always an obvious
+  // "go" rather than immediately hitting tick()'s end-of-steps check and stopping again.
+  if (cur >= STEPS.length - 1) cur = -1;
   tick();
 }
 
@@ -1191,11 +1453,15 @@ function stopPlay() {
   btnPlay.textContent = '▶ Play';
 }
 
+// One full pass per Play click rather than an unattended infinite loop — autoplay stops once
+// it reaches the last step. Starting another pass is always one click away (startPlay above
+// resets to the beginning first), but the stepper never keeps animating on its own past a
+// single run.
 function tick() {
   if (!playing) return;
   if (cur >= STEPS.length - 1) { stopPlay(); return; }
   step(1);
-  const speed = parseInt(document.getElementById('speed-sel').value, 10) || 900;
+  const speed = parseInt(document.getElementById('speed-sel').value, 10) || 1600;
   timer = setTimeout(tick, speed);
 }
 
