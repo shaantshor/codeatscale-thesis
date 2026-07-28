@@ -155,6 +155,25 @@ body {
 .btn-reset:hover:not(:disabled) { background: var(--surface-2); }
 .btn-reset:disabled { opacity: 0.45; cursor: not-allowed; }
 
+.btn-share {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-share:hover { background: var(--surface-2); }
+
+.share-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .btn-run {
   display: flex;
   align-items: center;

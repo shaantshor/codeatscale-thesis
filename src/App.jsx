@@ -7,9 +7,30 @@ import { instrumentForTrace } from './utils/jsInstrumenter'
 import { instrumentForTrace as instrumentJavaForTrace } from './utils/javaInstrumenter'
 import { runJava } from './utils/javaRunner'
 import { canHandle as haskellCanHandle, stepEval as haskellStepEval } from './utils/haskellStepper'
+import LZString from 'lz-string'
 import './App.css'
 
 const SLOW_RUN_MS = 12000
+
+// Session 10: link sharing. Source is capped at this length before compression — the risk
+// register flags that a compressed URL can exceed browser URL length limits for large programs,
+// so rather than let that happen silently, sharing is disabled above the cap with a visible
+// reason instead of producing a link that may not open correctly for the recipient.
+const SHARE_SOURCE_CAP = 2000
+
+function readSharedFromHash() {
+  try {
+    const hash = window.location.hash
+    if (!hash || hash.length < 2) return null
+    const decompressed = LZString.decompressFromEncodedURIComponent(hash.slice(1))
+    if (!decompressed) return null
+    const parsed = JSON.parse(decompressed)
+    if (!parsed || typeof parsed.code !== 'string' || !LANGUAGES[parsed.language]) return null
+    return parsed
+  } catch (_) {
+    return null
+  }
+}
 
 // Resizable pane bounds (percentages) and localStorage keys for persisting user-dragged sizes.
 // Trace mode (the Python step-debugger animation) gets its own remembered sizes, separate from
@@ -35,9 +56,12 @@ function readStoredPct(key, fallback, min, max) {
   return fallback
 }
 
+const sharedOnLoad = readSharedFromHash()
+
 function App() {
-  const [language, setLanguage] = useState('python')
-  const [code, setCode] = useState(LANGUAGES['python'].starterCode)
+  const [language, setLanguage] = useState(sharedOnLoad ? sharedOnLoad.language : 'python')
+  const [code, setCode] = useState(sharedOnLoad ? sharedOnLoad.code : LANGUAGES['python'].starterCode)
+  const [shareStatus, setShareStatus] = useState('')
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [visual, setVisual] = useState(null)
@@ -60,7 +84,10 @@ function App() {
   const workersRef = useRef(new Map())
   const pendingRef = useRef(new Map())
   const slowTimerRef = useRef(null)
-  const codeRef = useRef(LANGUAGES['python'].starterCode)
+  const codeRef = useRef(sharedOnLoad ? sharedOnLoad.code : LANGUAGES['python'].starterCode)
+  // Mirrors `language` for the hashchange listener below (registered once with [] deps, so it
+  // can't close over live `language` state directly without going stale).
+  const languageRef = useRef(sharedOnLoad ? sharedOnLoad.language : 'python')
   const handleRunRef = useRef(null)
   const appBodyRef = useRef(null)
   const outputPaneRef = useRef(null)
@@ -71,6 +98,7 @@ function App() {
   const traceRunCodeRef = useRef('')
 
   codeRef.current = code
+  languageRef.current = language
 
   useEffect(() => {
     try { localStorage.setItem('cas_darkMode', String(darkMode)) } catch {}
@@ -221,6 +249,32 @@ function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Session 10 follow-up: pasting a different share link into the address bar while the app is
+  // already open (same origin/path, hash-only difference) doesn't reload the page in most
+  // browsers — it just fires 'hashchange'. Without this listener that link would silently do
+  // nothing until a manual refresh. Guarded against reacting to our OWN handleShare() call
+  // (which also sets window.location.hash, and would otherwise wipe the console/visual panes
+  // immediately after clicking "Copy link") by comparing against the live language/code refs
+  // before applying anything.
+  useEffect(() => {
+    function onHashChange() {
+      const shared = readSharedFromHash()
+      if (!shared) return
+      if (shared.language === languageRef.current && shared.code === codeRef.current) return
+      setLanguage(shared.language)
+      setCode(shared.code)
+      codeRef.current = shared.code
+      setOutput('')
+      setError('')
+      setVisual(null)
+      setTraceLine(null)
+      setHasRun(false)
+      setRunStats(null)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
   function getOrCreateWorker(langId) {
@@ -414,6 +468,22 @@ function App() {
     setRunStats(null)
   }
 
+  function handleShare() {
+    if (codeRef.current.length > SHARE_SOURCE_CAP) {
+      setShareStatus(`Too long to share (${codeRef.current.length}/${SHARE_SOURCE_CAP} chars)`)
+      setTimeout(() => setShareStatus(''), 2500)
+      return
+    }
+    const payload = JSON.stringify({ language, code: codeRef.current })
+    const compressed = LZString.compressToEncodedURIComponent(payload)
+    const url = window.location.origin + window.location.pathname + '#' + compressed
+    window.location.hash = compressed
+    navigator.clipboard?.writeText(url).then(
+      () => { setShareStatus('Link copied!'); setTimeout(() => setShareStatus(''), 2000) },
+      () => { setShareStatus('Link updated (copy from address bar)'); setTimeout(() => setShareStatus(''), 2500) }
+    )
+  }
+
   function handleLanguageChange(e) {
     const newLang = e.target.value
     const entry = LANGUAGES[newLang]
@@ -584,6 +654,10 @@ body{
           )}
           <button className="btn-theme" onClick={() => setDarkMode(d => !d)} title="Toggle dark / light mode">
             {darkMode ? '☀' : '🌙'}
+          </button>
+          {shareStatus && <span className="share-status">{shareStatus}</span>}
+          <button className="btn-share" onClick={handleShare} title="Copy a shareable link to this code">
+            Copy link
           </button>
           <button className="btn-reset" onClick={handleReset} disabled={isRunning}>
             Reset
