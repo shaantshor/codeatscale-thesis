@@ -74,18 +74,51 @@ def _classify_local(v, depth=0, _seen=None):
             return {'k': 'str', 'r': r[:120] if len(r) > 120 else r}
         if isinstance(v, (list, tuple)):
             items = []
+            item_entries = []
+            has_obj_item = False
             for el in list(v)[:50]:
                 try:
                     ir = repr(el)
                 except Exception:
                     ir = '?'
                 items.append(ir[:60] if len(ir) > 60 else ir)
+                # Elements that are user-defined object instances also get fully classified so
+                # _walk_heap/_collect_heap can pull them into the object graph. 'items' (above)
+                # stays display-strings-only and untouched — that's what the array-box UI reads,
+                # and it already has its own working swap/compare-diff logic that assumes plain
+                # strings; item_entries is purely additive, only consumed by heap collection.
+                if _is_obj(el):
+                    has_obj_item = True
+                    item_entries.append(_classify_local(el, depth + 1, _seen))
+                else:
+                    item_entries.append(None)
             kind = 'list' if isinstance(v, list) else 'tuple'
             r = repr(v)
-            return {'k': kind, 'r': r[:120] if len(r) > 120 else r, 'items': items}
+            entry = {'k': kind, 'r': r[:120] if len(r) > 120 else r, 'items': items}
+            if has_obj_item:
+                entry['item_entries'] = item_entries
+            return entry
         if isinstance(v, dict):
             r = repr(v)
-            return {'k': 'dict', 'r': r[:120] if len(r) > 120 else r}
+            entry = {'k': 'dict', 'r': r[:120] if len(r) > 120 else r}
+            has_obj_val = False
+            dict_entries = []
+            try:
+                for dk, dv in list(v.items())[:20]:
+                    try:
+                        kr = repr(dk)
+                    except Exception:
+                        kr = '?'
+                    val_entry = _classify_local(dv, depth + 1, _seen)
+                    if val_entry.get('k') in ('obj', 'ref'):
+                        has_obj_val = True
+                    dict_entries.append({'key': kr[:40] if len(kr) > 40 else kr, 'value': val_entry})
+            except Exception:
+                pass
+            if has_obj_val:
+                entry['oid'] = _get_oid(v)
+                entry['entries'] = dict_entries
+            return entry
         if _is_obj(v):
             oid = _get_oid(v)
             vid = id(v)
@@ -118,13 +151,36 @@ def _classify_local(v, depth=0, _seen=None):
         return {'k': 'obj', 'r': '?'}
 
 def _collect_heap(entry, heap, visited):
-    if not isinstance(entry, dict) or entry.get('k') != 'obj':
+    if not isinstance(entry, dict):
+        return
+    # list/tuple entries are never heap objects themselves, but (since the list/tuple fix) may
+    # carry item_entries for elements that ARE objects — walk into those without registering the
+    # list/tuple itself in the heap.
+    if entry.get('k') in ('list', 'tuple'):
+        for ival in entry.get('item_entries', []) or []:
+            _collect_heap(ival, heap, visited)
+        return
+    if entry.get('k') == 'dict':
+        oid = entry.get('oid')
+        if oid is None or oid in visited:
+            return
+        visited.add(oid)
+        heap[str(oid)] = {
+            'kind': 'dict',
+            'r': entry.get('r', '?'),
+            'entries': entry.get('entries', [])
+        }
+        for de in entry.get('entries', []) or []:
+            _collect_heap(de.get('value'), heap, visited)
+        return
+    if entry.get('k') != 'obj':
         return
     oid = entry.get('oid')
     if oid is None or oid in visited:
         return
     visited.add(oid)
     heap[str(oid)] = {
+        'kind': 'obj',
         'cls': entry.get('cls', '?'),
         'r': entry.get('r', '?'),
         'fields': entry.get('fields', {})
@@ -144,7 +200,13 @@ def _tracer(frame, event, arg):
         _truncated[0] = True
         return None
     fname = frame.f_code.co_name
-    if fname.startswith('_') or fname.startswith('<'):
+    # __init__ is deliberately let through even though it starts with '_' — it's the one dunder
+    # that's unambiguously useful to watch (field assignment during construction) and is always
+    # an explicit, predictable call (object construction), unlike __repr__/__eq__/__add__ etc.
+    # which fire as hidden side effects of print()/==/+ and would flood the step debugger with
+    # frames the user never asked to see. Every other underscore-prefixed name (tracer internals
+    # like _get_oid, plus <module>/<lambda>/<listcomp> frames) stays filtered.
+    if fname != '__init__' and (fname.startswith('_') or fname.startswith('<')):
         return None
     if event in ('call', 'line', 'return'):
         loc = {}

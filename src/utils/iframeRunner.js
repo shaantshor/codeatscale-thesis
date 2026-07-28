@@ -143,6 +143,10 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
 
   var __BUILTIN = new Set(['Object','Array','Function','RegExp','Date','Map','Set','WeakMap','WeakSet','Promise','Error','TypeError','RangeError','SyntaxError','ReferenceError','EvalError','URIError','ArrayBuffer','DataView','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array','Number','String','Boolean','Symbol','BigInt'])
 
+  function __isUserObject(v) {
+    return !!(v && typeof v === 'object' && v.constructor && typeof v.constructor.name === 'string' && v.constructor.name && !__BUILTIN.has(v.constructor.name))
+  }
+
   function __classify(v, depth, seen) {
     if (depth === undefined) depth = 0
     try {
@@ -154,17 +158,29 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
         return { k: 'str', r: rs.length > 120 ? rs.slice(0, 120) + '...' : rs }
       }
       if (Array.isArray(v)) {
-        var items = v.slice(0, 50).map(function(el) {
+        var sliced = v.slice(0, 50)
+        var items = sliced.map(function(el) {
           var s; try { s = JSON.stringify(el) } catch(e) { s = String(el) }
           if (s === undefined) s = String(el)
           return s.length > 60 ? s.slice(0, 60) + '...' : s
         })
         var ra = '[' + items.join(', ') + (v.length > 50 ? ', ...' : '') + ']'
-        return { k: 'list', r: ra.length > 120 ? ra.slice(0, 120) + '...' : ra, items: items }
+        var listEntry = { k: 'list', r: ra.length > 120 ? ra.slice(0, 120) + '...' : ra, items: items }
+        // Elements that are user objects also get fully classified so __collectHeap can pull
+        // them into the object graph. 'items' (above) stays display-strings-only and untouched —
+        // that's what the array-box UI reads; item_entries is purely additive, only consumed by
+        // heap collection, mirroring the same fix on the Python side (python.worker.js).
+        var hasObjItem = false
+        var itemEntries = sliced.map(function(el) {
+          if (__isUserObject(el)) { hasObjItem = true; return __classify(el, depth + 1, seen) }
+          return null
+        })
+        if (hasObjItem) listEntry.item_entries = itemEntries
+        return listEntry
       }
       if (typeof v === 'function') return { k: 'fn', r: 'function ' + (v.name || 'anonymous') + '()' }
       if (typeof v === 'object') {
-        var cls = v.constructor && typeof v.constructor.name === 'string' && v.constructor.name && !__BUILTIN.has(v.constructor.name) ? v.constructor.name : null
+        var cls = __isUserObject(v) ? v.constructor.name : null
         if (cls) {
           if (seen && seen.has(v)) return { k: 'ref', r: '<' + cls + ' #' + __getObjId(v) + '>', oid: __getObjId(v) }
           var oid = __getObjId(v)
@@ -187,7 +203,24 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
           return objEntry
         }
         var ro; try { ro = JSON.stringify(v) } catch(e) { ro = String(v) }
-        return { k: 'dict', r: ro && ro.length > 120 ? ro.slice(0, 120) + '...' : (ro || '{}') }
+        var dictEntry = { k: 'dict', r: ro && ro.length > 120 ? ro.slice(0, 120) + '...' : (ro || '{}') }
+        var hasObjVal = false
+        var dictEntries = []
+        try {
+          var dkeys = Object.keys(v).slice(0, 20)
+          for (var di = 0; di < dkeys.length; di++) {
+            var dk = dkeys[di]
+            var dvEntry
+            try { dvEntry = __classify(v[dk], depth + 1, seen) } catch(e) { dvEntry = { k: 'obj', r: '?' } }
+            if (dvEntry.k === 'obj' || dvEntry.k === 'ref') hasObjVal = true
+            dictEntries.push({ key: JSON.stringify(dk), value: dvEntry })
+          }
+        } catch(e) {}
+        if (hasObjVal) {
+          dictEntry.oid = __getObjId(v)
+          dictEntry.entries = dictEntries
+        }
+        return dictEntry
       }
       return { k: 'obj', r: String(v) }
     } catch(e) {
@@ -196,20 +229,45 @@ export function buildTraceableIframeSrcdoc(instrumentedCode) {
   }
 
   function __collectHeap(entry, heap, visited) {
-    if (!entry || entry.k !== 'obj' || entry.oid == null) return
+    if (!entry) return
+    // list entries are never heap objects themselves, but (since the array-of-objects fix) may
+    // carry item_entries for elements that ARE objects — walk into those without registering the
+    // array itself in the heap.
+    if (entry.k === 'list') {
+      (entry.item_entries || []).forEach(function(ie) { __collectHeap(ie, heap, visited) })
+      return
+    }
+    if (entry.k === 'dict' && entry.oid != null) {
+      var dkey = String(entry.oid)
+      if (visited.has(dkey)) return
+      visited.add(dkey)
+      heap[dkey] = { kind: 'dict', r: entry.r, entries: entry.entries || [] }
+      ;(entry.entries || []).forEach(function(de) { __collectHeap(de.value, heap, visited) })
+      return
+    }
+    if (entry.k !== 'obj' || entry.oid == null) return
     var key = String(entry.oid)
     if (visited.has(key)) return
     visited.add(key)
-    heap[key] = { cls: entry.cls, r: entry.r, fields: entry.fields || {} }
+    heap[key] = { kind: 'obj', cls: entry.cls, r: entry.r, fields: entry.fields || {} }
     var flds = entry.fields || {}
     Object.keys(flds).forEach(function(fn) { __collectHeap(flds[fn], heap, visited) })
   }
 
   function __buildFrame(pairs) {
-    var loc = {}, heap = {}, heapVisited = new Set(), seen = new WeakSet()
+    var loc = {}, heap = {}, heapVisited = new Set()
     for (var i = 0; i < pairs.length; i++) {
       var name = pairs[i][0], val = pairs[i][1]
-      var entry = __classify(val, 0, seen)
+      // Fresh 'seen' set per top-level local (matches Python's _classify_local, which
+      // defaults _seen to a new empty set on each call) rather than one WeakSet shared
+      // across every local in the frame. A shared set meant a value already visited as
+      // one local (e.g. n1) got misclassified as k='ref' when it showed up again inside
+      // a sibling local (e.g. inside dict d's entries) even though it's not a real cycle
+      // - only a genuine self-referential chain within a SINGLE value's own traversal
+      // should collapse to 'ref'. Caught while verifying the new dict-card rendering:
+      // reference rows fell back to "obj#N" instead of the class name because cls was
+      // dropped by the spurious 'ref' classification.
+      var entry = __classify(val, 0, new WeakSet())
       var locEntry = { k: entry.k, r: entry.r }
       if (entry.items) locEntry.items = entry.items
       if (entry.oid != null) locEntry.oid = entry.oid
