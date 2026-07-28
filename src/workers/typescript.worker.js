@@ -1,4 +1,4 @@
-// TypeScript compiler loaded from CDN at runtime — transpile only, no execution.
+// TypeScript compiler loaded from CDN at runtime - transpile only, no execution.
 // Transpiled JavaScript is returned as `jsOutput`; App.jsx passes it to iframeRunner
 // for execution in a sandboxed iframe. Keeps the ~3 MB tsc bundle out of the main
 // Vite bundle and out of the JS worker chunk entirely.
@@ -7,7 +7,7 @@
 // module/exports context. importScripts() is not available in module-type workers
 // (Vite uses { type: 'module' } for all workers). A simple dynamic import() of the
 // CDN URL would leave `ts` undefined because UMD only sets self.ts as a fallback when
-// neither CommonJS nor AMD is detected — and self.ts is unreliable. The fake-module
+// neither CommonJS nor AMD is detected - and self.ts is unreliable. The fake-module
 // pattern forces the UMD wrapper to assign TypeScript to module.exports.
 //
 // Worker protocol (App.jsx → Worker):
@@ -16,10 +16,10 @@
 // Worker protocol (Worker → App.jsx):
 //   { id, stdout: '', stderr: string, error: string|null, visual: null, jsOutput: string|null }
 //
-//   stderr    — TS diagnostic messages (parse errors; transpileModule does NOT perform
-//               full type-checking, so type errors are not reported here — this is a
+//   stderr    - TS diagnostic messages (parse errors; transpileModule does NOT perform
+//               full type-checking, so type errors are not reported here - this is a
 //               known limitation of the transpileModule API)
-//   jsOutput  — transpiled JavaScript string; null only if the compiler failed to load
+//   jsOutput  - transpiled JavaScript string; null only if the compiler failed to load
 //               or threw unexpectedly; transpileModule always emits JS even with errors
 
 const compilerReady = (async () => {
@@ -62,7 +62,7 @@ self.onmessage = async ({ data: { id, code } }) => {
         // output can be embedded in an IIFE inside iframeRunner's srcdoc
         module: ts.ModuleKind.None,
         target: ts.ScriptTarget.ES2020,
-        // strict: false — type errors are not the goal of transpileModule; we want
+        // strict: false - type errors are not the goal of transpileModule; we want
         // to strip types and emit runnable JS regardless of type correctness
         strict: false,
         noEmitOnError: false,
@@ -90,7 +90,7 @@ self.onmessage = async ({ data: { id, code } }) => {
       jsOutput: result.outputText,
     })
   } catch (err) {
-    // Unexpected compiler throw — still send back the error as stderr so App.jsx
+    // Unexpected compiler throw - still send back the error as stderr so App.jsx
     // can display it; jsOutput is null so App.jsx will not attempt iframe execution
     self.postMessage({
       id,

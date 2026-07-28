@@ -12,7 +12,7 @@ import './App.css'
 
 const SLOW_RUN_MS = 12000
 
-// Session 10: link sharing. Source is capped at this length before compression — the risk
+// Session 10: link sharing. Source is capped at this length before compression - the risk
 // register flags that a compressed URL can exceed browser URL length limits for large programs,
 // so rather than let that happen silently, sharing is disabled above the cap with a visible
 // reason instead of producing a link that may not open correctly for the recipient.
@@ -35,7 +35,7 @@ function readSharedFromHash() {
 // Resizable pane bounds (percentages) and localStorage keys for persisting user-dragged sizes.
 // Trace mode (the Python step-debugger animation) gets its own remembered sizes, separate from
 // normal mode, since it needs the editor and console to get out of the way and hand most of the
-// screen to the animation canvas — closer to the reference debugger's source+animation layout.
+// screen to the animation canvas - closer to the reference debugger's source+animation layout.
 const EDITOR_PCT_MIN = 14
 const EDITOR_PCT_MAX = 80
 const CONSOLE_PCT_MIN = 6
@@ -92,6 +92,7 @@ function App() {
   const appBodyRef = useRef(null)
   const outputPaneRef = useRef(null)
   const prevTraceActiveRef = useRef(false)
+  const visualIframeRef = useRef(null)
   // Source shown by the trace debugger for the run currently in flight. Decoupled from codeRef
   // (which tracks live edits) so a js_trace message that lands after the user has already
   // started editing again still describes the code that actually produced it.
@@ -179,7 +180,7 @@ function App() {
   useEffect(() => {
     function handleIframeMessage(event) {
       // All our iframes are sandboxed srcdoc documents (opaque origin, serialized as "null").
-      // Anything else (extensions, devtools, HMR) is not for us — code_patch in particular
+      // Anything else (extensions, devtools, HMR) is not for us - code_patch in particular
       // must never be triggerable by another window.
       if (event.origin !== 'null') return
       const { type } = event.data || {}
@@ -253,7 +254,7 @@ function App() {
 
   // Session 10 follow-up: pasting a different share link into the address bar while the app is
   // already open (same origin/path, hash-only difference) doesn't reload the page in most
-  // browsers — it just fires 'hashchange'. Without this listener that link would silently do
+  // browsers - it just fires 'hashchange'. Without this listener that link would silently do
   // nothing until a manual refresh. Guarded against reacting to our OWN handleShare() call
   // (which also sets window.location.hash, and would otherwise wipe the console/visual panes
   // immediately after clicking "Copy link") by comparing against the live language/code refs
@@ -294,7 +295,7 @@ function App() {
       worker.onerror = (e) => {
         // TEMP diagnostic: surface filename/line/col AND the real stack (e.error?.stack,
         // when same-origin) too, not just message, while tracking down the CheerpJ "n1"
-        // worker crash — revert to the plain message-only version once that's resolved.
+        // worker crash - revert to the plain message-only version once that's resolved.
         const loc = e.filename ? ` @ ${e.filename}:${e.lineno}:${e.colno}` : ''
         const stack = e.error?.stack ? `\n${e.error.stack}` : ''
         for (const [id, resolve] of pendingRef.current) {
@@ -370,7 +371,7 @@ function App() {
       setHasRun(true)
 
     } else if (entry.executionMode === 'main-thread-java') {
-      // Java runs directly on the main thread, not in a Worker — see javaRunner.js's
+      // Java runs directly on the main thread, not in a Worker - see javaRunner.js's
       // top-of-file comment and prd.md's Risk Register for why (CheerpJ crashes
       // deterministically within ~1s when hosted inside a dedicated Worker; the identical
       // sequence works fine on the main thread). Trade-off: this blocks the UI thread
@@ -431,7 +432,7 @@ function App() {
 
       setRunStats({ durationMs })
       // Instrument the TRANSPILED output (Acorn can't parse TS syntax directly). Trace line
-      // numbers are therefore relative to the transpiled JS, not the original .ts source — for
+      // numbers are therefore relative to the transpiled JS, not the original .ts source - for
       // straightforward code transpileModule keeps them aligned, but multi-line type-only
       // declarations can shift lines. Documented limitation: see highlightLine below, which is
       // deliberately not wired to the real editor for TypeScript because of this same gap.
@@ -457,6 +458,17 @@ function App() {
     setHasRun(false)
     setRunStats(null)
     setSlowWarning(false)
+  }
+
+  // Lets the real editor's gutter drive the step debugger: clicking a line number posts a
+  // message into the Visual pane's iframe, which (in traceVisualizer.js) looks up the
+  // matching step and jumps to it. Only wired up once a trace actually exists (isTraceActive)
+  // - CodeEditor.jsx's clickableLines prop gates the gutter's own click handling and cursor,
+  // so this function is only ever reachable when there's a real trace to jump within anyway.
+  function handleLineClick(lineNumber) {
+    const win = visualIframeRef.current?.contentWindow
+    if (!win) return
+    win.postMessage({ type: 'goto_line', line: lineNumber }, '*')
   }
 
   function handleClear() {
@@ -487,9 +499,16 @@ function App() {
   function handleLanguageChange(e) {
     const newLang = e.target.value
     const entry = LANGUAGES[newLang]
+    const oldEntry = LANGUAGES[language]
     setLanguage(newLang)
-    setCode(entry.starterCode)
-    codeRef.current = entry.starterCode
+    // Only load the new language's starter code if the editor still shows the previous
+    // language's untouched starter code. If the user actually typed or edited something,
+    // switching languages must not silently discard it - keep exactly what they wrote and
+    // just change the syntax highlighting/execution mode on top of it.
+    if (codeRef.current === oldEntry.starterCode) {
+      setCode(entry.starterCode)
+      codeRef.current = entry.starterCode
+    }
     setOutput('')
     setError('')
     setVisual(null)
@@ -500,17 +519,22 @@ function App() {
 
   function buildVisualSrcdoc(v) {
     if (!v) return ''
-    if (v.type === 'trace') return buildTraceSrcdoc(v.data, v.code)
-    if (v.type === 'haskell-steps') return buildHaskellSrcdoc(v.data)
+    if (v.type === 'trace') return buildTraceSrcdoc(v.data, v.code, darkMode)
+    if (v.type === 'haskell-steps') return buildHaskellSrcdoc(v.data, darkMode)
+    // These small builders are also separate srcdoc documents that need the theme baked in
+    // explicitly - same reasoning as traceVisualizer.js's buildTraceSrcdoc/buildHaskellSrcdoc.
+    const bg = darkMode ? '#1a1a1a' : '#f5f5f6'
+    const fg = darkMode ? '#eff1f6' : '#1c1c20'
+    const onRgb = darkMode ? '255,255,255' : '0,0,0'
     if (v.type === 'svg') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:${bg};}
 svg{max-width:100%;height:auto;}</style></head>
 <body>${v.data}</body></html>`
     }
     if (v.type === 'png') {
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a;}
+<style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:${bg};}
 img{max-width:100%;height:auto;}</style></head>
 <body><img src="data:image/png;base64,${v.data}"></body></html>`
     }
@@ -528,11 +552,11 @@ img{max-width:100%;height:auto;}</style></head>
       }).join('<br>')
       return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:#eff1f6;background:#1a1a1a;}
+body{margin:16px;font-family:system-ui,sans-serif;font-size:13px;color:${fg};background:${bg};}
 table{border-collapse:collapse;width:100%;}
-th,td{border:1px solid rgba(255,255,255,0.1);padding:6px 10px;text-align:left;}
-th{background:rgba(255,255,255,0.06);font-weight:600;}
-tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
+th,td{border:1px solid rgba(${onRgb},0.1);padding:6px 10px;text-align:left;}
+th{background:rgba(${onRgb},0.06);font-weight:600;}
+tr:nth-child(even) td{background:rgba(${onRgb},0.03);}
 </style></head>
 <body>${tables}</body></html>`
     }
@@ -544,6 +568,9 @@ tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
     const statusColor = hasError ? '#ef4743' : '#2cbb5d'
     const statusLabel = hasError ? 'Error' : 'Execution complete'
     const timeLabel = stats ? `${stats.durationMs} ms` : ''
+    const bg = darkMode ? '#1a1a1a' : '#f5f5f6'
+    const fg = darkMode ? '#eff1f6' : '#1c1c20'
+    const onRgb = darkMode ? '255,255,255' : '0,0,0'
 
     const escape = s => s
       .replace(/&/g, '&amp;')
@@ -564,8 +591,8 @@ tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
-  background:#1a1a1a;
-  color:#eff1f6;
+  background:${bg};
+  color:${fg};
   font-family:system-ui,-apple-system,sans-serif;
   font-size:13px;
   padding:12px;
@@ -573,17 +600,17 @@ body{
   overflow-y:auto;
 }
 .card{
-  border:1px solid rgba(255,255,255,0.08);
+  border:1px solid rgba(${onRgb},0.08);
   border-radius:8px;
   overflow:hidden;
 }
 .card-header{
-  background:rgba(255,255,255,0.04);
+  background:rgba(${onRgb},0.04);
   padding:8px 12px;
   display:flex;
   align-items:center;
   gap:8px;
-  border-bottom:1px solid rgba(255,255,255,0.07);
+  border-bottom:1px solid rgba(${onRgb},0.07);
 }
 .dot{
   width:8px;height:8px;border-radius:50%;
@@ -596,7 +623,7 @@ body{
 }
 .time{
   margin-left:auto;font-size:11px;
-  color:rgba(255,255,255,0.28);
+  color:rgba(${onRgb},0.28);
   font-variant-numeric:tabular-nums;
 }
 .card-body{
@@ -607,7 +634,7 @@ body{
 .out{white-space:pre-wrap;word-break:break-word;}
 .stdout{color:#2cbb5d;}
 .stderr{color:#ef4743;margin-top:8px;}
-.empty{color:rgba(255,255,255,0.2);font-style:italic;font-family:system-ui;}
+.empty{color:rgba(${onRgb},0.2);font-style:italic;font-family:system-ui;}
 </style>
 </head>
 <body>
@@ -673,7 +700,7 @@ body{
 
       {slowWarning && (
         <div className="slow-warning">
-          ⚠ This is taking longer than expected — infinite loop?
+          ⚠ This is taking longer than expected - infinite loop?
         </div>
       )}
 
@@ -688,6 +715,8 @@ body{
             language={language}
             highlightLine={isTraceActive && language !== 'typescript' ? traceLine : null}
             darkMode={darkMode}
+            clickableLines={isTraceActive && language !== 'typescript'}
+            onLineClick={handleLineClick}
           />
         </div>
 
@@ -739,6 +768,7 @@ body{
               )}
               {visual && (
                 <iframe
+                  ref={visualIframeRef}
                   className="visual-iframe"
                   sandbox="allow-scripts"
                   srcDoc={buildVisualSrcdoc(visual)}

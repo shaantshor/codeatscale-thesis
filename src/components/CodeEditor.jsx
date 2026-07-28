@@ -12,7 +12,7 @@ const highlightCompartment = new Compartment()
 const themeCompartment = new Compartment()
 
 // Builds the line-highlight decoration extension for a given 1-based line number. Returns
-// [] (no decoration) when lineNum is null/out of range — used to clear the highlight, e.g.
+// [] (no decoration) when lineNum is null/out of range - used to clear the highlight, e.g.
 // when the trace visualizer isn't active.
 function buildHighlightExtension(lineNum, doc) {
   if (!lineNum || lineNum < 1 || lineNum > doc.lines) return []
@@ -22,19 +22,39 @@ function buildHighlightExtension(lineNum, doc) {
   )
 }
 
-export default function CodeEditor({ value, onChange, readOnly = false, language = 'python', highlightLine = null, darkMode = false }) {
+export default function CodeEditor({ value, onChange, readOnly = false, language = 'python', highlightLine = null, darkMode = false, clickableLines = false, onLineClick = null }) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
   const onChangeRef = useRef(onChange)
+  // Read via refs inside the gutter's domEventHandlers (set up once at mount, below) so a
+  // prop change never needs the extension itself reconfigured - the handler always reads
+  // whatever these currently hold.
+  const clickableLinesRef = useRef(clickableLines)
+  const onLineClickRef = useRef(onLineClick)
 
   onChangeRef.current = onChange
+  clickableLinesRef.current = clickableLines
+  onLineClickRef.current = onLineClick
 
   useEffect(() => {
     const view = new EditorView({
       state: EditorState.create({
         doc: value,
         extensions: [
-          lineNumbers(),
+          // Clicking a line number after a run has produced a trace jumps the step debugger
+          // to that line instead of the gutter's default "select the line" behavior - only
+          // active once clickableLinesRef is true (set via the clickableLines prop, itself
+          // driven by App.jsx's isTraceActive), so before a run this is just a normal gutter.
+          lineNumbers({
+            domEventHandlers: {
+              mousedown(cmView, line) {
+                if (!clickableLinesRef.current || !onLineClickRef.current) return false
+                const lineNumber = cmView.state.doc.lineAt(line.from).number
+                onLineClickRef.current(lineNumber)
+                return true
+              },
+            },
+          }),
           history(),
           EditorView.lineWrapping,
           keymap.of([...defaultKeymap, ...historyKeymap]),
@@ -98,7 +118,7 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
 
   // Swap language extension when the language prop changes.
   // Calls the cmLang factory from the registry; if it returns null (e.g. R, Haskell)
-  // the Compartment is reconfigured with [] — plain text mode, no error thrown.
+  // the Compartment is reconfigured with [] - plain text mode, no error thrown.
   useEffect(() => {
     const view = viewRef.current
     if (!view) return
@@ -120,5 +140,5 @@ export default function CodeEditor({ value, onChange, readOnly = false, language
     return () => { cancelled = true }
   }, [language])
 
-  return <div ref={containerRef} className="cm-editor-wrap" />
+  return <div ref={containerRef} className={`cm-editor-wrap${clickableLines ? ' cm-lines-clickable' : ''}`} />
 }

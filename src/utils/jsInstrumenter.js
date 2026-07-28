@@ -1,15 +1,15 @@
-// jsInstrumenter.js — source-to-source instrumenter that injects trace calls into JS so the
+// jsInstrumenter.js - source-to-source instrumenter that injects trace calls into JS so the
 // SAME step-debugger UI used for Python (traceVisualizer.js / buildTraceSrcdoc) can render a
 // JavaScript or TypeScript (post-transpile) run. Produces the identical frame shape Python's
 // python.worker.js tracer produces: { event, func, line, locals: {name:{r,k,items?}}, ret }.
 //
 // Design choices, mirrored from the Python tracer's own documented limitations:
 //   - Only functions are traced (matches Python: "wrap code in a function to see the step
-//     animation" — top-level script statements outside any function are not instrumented).
+//     animation" - top-level script statements outside any function are not instrumented).
 //   - Insertion is purely textual: we never regenerate code from the AST, only splice trace
 //     calls in at exact character offsets taken from Acorn's node.start/end. This means real
 //     JS lexical scoping handles all the hard cases (shadowing, closures) correctly at runtime
-//     — our own "which names are in scope" bookkeeping only decides what to list, never
+//     - our own "which names are in scope" bookkeeping only decides what to list, never
 //     fabricates a value.
 //   - Scope is tracked as a proper chain of block frames, not one flat set: let/const declared
 //     inside an if/for/while/block are pushed onto a frame scoped to that block and popped when
@@ -26,7 +26,7 @@
 //     instrumentation. Moving the trace call inside the body reproduces the same "once per
 //     iteration" granularity by riding on the body's natural re-execution. Caught by actually
 //     running a real trace end-to-end and diffing narration output against the Python version of
-//     the same algorithm, not by reasoning about the AST alone — the two produced different
+//     the same algorithm, not by reasoning about the AST alone - the two produced different
 //     comparison counts for an identical bubble sort until this was fixed.
 //   - Statement kinds we don't specifically understand (try/catch, switch, destructuring
 //     declarators) are left un-recursed: they still get a single trace call before them, but
@@ -34,7 +34,7 @@
 //   - class declarations ARE traced (instrumentClass): every ordinary method, including the
 //     constructor, is instrumented individually with 'this' seeded into scope. Not yet supported:
 //     getters/setters, computed method names ([Symbol.iterator]() {}), class expressions
-//     (const X = class {}), and private fields (#x) — all documented limitations, not failures;
+//     (const X = class {}), and private fields (#x) - all documented limitations, not failures;
 //     the rest of the class still traces normally.
 //   - A parse failure, or a source with no traceable function, returns { ok: false } so the
 //     caller can fall back to plain iframe execution unchanged.
@@ -160,13 +160,13 @@ export function instrumentForTrace(code) {
         instrumentFunction(stmt, stmt.id.name)
       }
       // TryStatement / SwitchStatement / ClassDeclaration / etc: left as an opaque traced
-      // statement — no recursion inside, documented limitation.
+      // statement - no recursion inside, documented limitation.
     }
   }
 
   // extraNames lets class methods seed 'this' into scope: pairsLiteral interpolates names as
   // bare identifier references, so adding the string "this" to the scope set produces
-  // `[["this",this]]` in the generated trace call — a valid reference to the method's receiver,
+  // `[["this",this]]` in the generated trace call - a valid reference to the method's receiver,
   // no special-casing needed anywhere else.
   function instrumentFunction(funcNode, name, extraNames) {
     if (funcCount >= MAX_FUNCS) return
@@ -179,7 +179,7 @@ export function instrumentForTrace(code) {
 
   // Instruments every ordinary method (including the constructor) on a class declaration.
   // Getters/setters and computed method names ([Symbol.iterator]() {}) are left un-instrumented
-  // — documented limitation, not a hard failure (the class itself, and every other method, still
+  // - documented limitation, not a hard failure (the class itself, and every other method, still
   // traces normally). Static methods are labeled "ClassName.method (static)" in the breadcrumb;
   // the constructor is labeled with the bare class name, matching how Python's __init__ shows up
   // as the class name in tracebacks/breadcrumbs there.

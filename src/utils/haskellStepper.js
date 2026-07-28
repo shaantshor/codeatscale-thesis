@@ -1,5 +1,5 @@
 // src/utils/haskellStepper.js
-// Session 8 — Layer B: mini-Haskell lazy evaluator with step recording.
+// Session 8 - Layer B: mini-Haskell lazy evaluator with step recording.
 //
 // Purpose: demonstrate lazy/call-by-need evaluation interactively when the user writes a
 // pure mini-Haskell expression or a set of simple function definitions. The step trace
@@ -210,7 +210,7 @@ function parse(src) {
         }
         const r = parseExpr()
         expect('RP')
-        return { T: 'Sec', op, l: null, r }  // (op r) — left section: (\x -> x op r)
+        return { T: 'Sec', op, l: null, r }  // (op r) - left section: (\x -> x op r)
       }
       const e = parseExpr()
       if (check('CM')) {
@@ -221,7 +221,7 @@ function parse(src) {
         return { T: 'Tu', es: elems }
       }
       if (check('OP', 'COLON')) {
-        // Right section: (e op) — (\x -> e op x)
+        // Right section: (e op) - (\x -> e op x)
         const op = eat().v
         expect('RP')
         return { T: 'Sec', op, l: e, r: null }
@@ -283,7 +283,7 @@ function parse(src) {
     return f
   }
 
-  // Infix cons (:) — right-associative, just above arithmetic
+  // Infix cons (:) - right-associative, just above arithmetic
   function parseCons() {
     const l = parseOps()
     if (check('COLON')) { eat(); return { T: 'C', h: l, t: parseCons() } }
@@ -291,7 +291,7 @@ function parse(src) {
   }
 
   // Arithmetic and comparison operators with simplified precedence
-  // (we don't implement full Haskell precedence — good enough for teaching demos)
+  // (we don't implement full Haskell precedence - good enough for teaching demos)
   function parseOps() {
     return parseBinary(parseUnary, [
       ['||'], ['&&'],
@@ -332,7 +332,7 @@ function parse(src) {
     let expr = null
     while (!check('EOF')) {
       if (check('SEMI')) { eat(); continue }
-      // Type annotation line: id :: ... — skip entire line
+      // Type annotation line: id :: ... - skip entire line
       if (check('ID') && toks[pos + 1]?.t === 'DCOLON') {
         while (!check('EOF', 'SEMI') && !(check('ID') && toks[pos + 1]?.v !== ':')) {
           if (check('ID') || check('CON')) {
@@ -365,7 +365,7 @@ function parse(src) {
           while (!check('EQ', 'EOF')) {
             if (check('ID', 'WILD')) params.push(eat().v)
             else if (check('LP', 'LB', 'NUM', 'STR', 'CON')) {
-              // Pattern argument — only handle simple variable patterns for now
+              // Pattern argument - only handle simple variable patterns for now
               params.push(eat().v)
             }
             else break
@@ -400,7 +400,7 @@ function pretty(val, depth = 0) {
     case 'V': return val.n
     case 'Nil': return '[]'
     case 'C': {
-      // Collect spine (don't force Lazy/Thunk tails — show as ...)
+      // Collect spine (don't force Lazy/Thunk tails - show as ...)
       const items = []
       let node = val
       while (node.T === 'C' && items.length < 20) { items.push(node.h); node = node.t }
@@ -606,7 +606,7 @@ function evalE(expr, env, ctx) {
     }
     case 'A': {
       const fn = evalE(expr.f, env, ctx)
-      // For App nodes, don't eagerly evaluate x — pass it to applyFn as an AST node with env
+      // For App nodes, don't eagerly evaluate x - pass it to applyFn as an AST node with env
       // (lazy: only force x when the function actually needs it)
       return applyFn(fn, { T: 'Thunk', e: expr.x, env }, env, ctx)
     }

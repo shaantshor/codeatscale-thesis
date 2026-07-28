@@ -1,16 +1,16 @@
-// Language registry — the single extension point for adding new languages.
+// Language registry - the single extension point for adding new languages.
 // Each entry describes everything App.jsx needs to support a language:
-//   id            — unique string key (used in state, worker Map, URL)
-//   label         — display name in the language selector
-//   emoji         — decorative icon shown alongside label
-//   badge         — runtime label shown in the selector (e.g. "Pyodide", "Native")
-//   executionMode — 'worker' | 'iframe' | 'worker+iframe'
+//   id            - unique string key (used in state, worker Map, URL)
+//   label         - display name in the language selector
+//   emoji         - decorative icon shown alongside label
+//   badge         - runtime label shown in the selector (e.g. "Pyodide", "Native")
+//   executionMode - 'worker' | 'iframe' | 'worker+iframe'
 //                   worker       : code runs in a Web Worker, returns { stdout, stderr, error, visual }
 //                   iframe       : code runs in a sandboxed <iframe srcdoc>, stdout captured via postMessage
 //                   worker+iframe: worker transpiles (e.g. TS→JS), output JS runs in iframe
-//   cmLang        — async factory returning a CM6 language extension, or null for plain text
-//   workerFactory — factory that returns a new Worker instance (only for worker / worker+iframe modes)
-//   starterCode   — default code shown when the language is first selected
+//   cmLang        - async factory returning a CM6 language extension, or null for plain text
+//   workerFactory - factory that returns a new Worker instance (only for worker / worker+iframe modes)
+//   starterCode   - default code shown when the language is first selected
 
 export const LANGUAGES = {
   python: {
@@ -24,7 +24,7 @@ export const LANGUAGES = {
       new URL('../workers/python.worker.js', import.meta.url),
       { type: 'module' }
     ),
-    starterCode: `# CodeAtScale — Python playground
+    starterCode: `# CodeAtScale - Python playground
 # Try dragging the num_times slider or editing the name in the Visual pane!
 
 def repeat(num_times):
@@ -51,15 +51,15 @@ greet("Alice")
     emoji: '🟨',
     badge: 'Native',
     // iframe mode: code runs directly in a sandboxed <iframe srcdoc> with full DOM
-    // access. No WASM runtime — cold-start is effectively zero. Stdout is captured
+    // access. No WASM runtime - cold-start is effectively zero. Stdout is captured
     // by intercepting console.log and posting messages to the parent via postMessage.
     executionMode: 'iframe',
     cmLang: () => import('@codemirror/lang-javascript').then(m => m.javascript()),
     // Function-wrapped so the step-debugger trace (same DAP-style animation as Python) has
-    // something to show — an AST instrumenter (src/utils/jsInstrumenter.js) statically injects
+    // something to show - an AST instrumenter (src/utils/jsInstrumenter.js) statically injects
     // trace calls into code inside functions before it runs. Top-level code without a function
     // still runs natively with full DOM access, it just won't produce a step trace.
-    starterCode: `// JavaScript — runs natively in your browser (no WASM, zero cold-start)
+    starterCode: `// JavaScript - runs natively in your browser (no WASM, zero cold-start)
 // Wrapped in a function so the Visual pane can step through it, just like Python.
 
 function bubbleSort(arr) {
@@ -89,7 +89,7 @@ console.log(bubbleSort([5, 2, 1, 4, 3]))
     // via @bjorn3/browser_wasi_shim. Requires self-hosted binary (no public CDN).
     // Layer B (lazy-step visualizer) is handled in App.jsx via haskellStepper.js
     // and does not need a WASM binary.
-    // Cold-start is dissertation data — first load downloads the binary.
+    // Cold-start is dissertation data - first load downloads the binary.
     executionMode: 'worker',
     cmLang: () => Promise.resolve(null), // no CM6 Haskell package available
     workerFactory: () => new Worker(
@@ -112,7 +112,7 @@ take 10 (map (*2) [1..])
     emoji: '☕',
     badge: 'CheerpJ',
     // main-thread mode: CheerpJ 4.3 (WASM-based OpenJDK) compiles and runs Java source
-    // directly on the main thread — NOT in a Web Worker, unlike every other language here.
+    // directly on the main thread - NOT in a Web Worker, unlike every other language here.
     // A research session (2026-07-27, see prd.md's Risk Register) live-verified CheerpJ
     // crashes deterministically within ~1s when hosted inside a dedicated Worker; the
     // identical sequence on the main thread ran fine. See src/utils/javaRunner.js for the
@@ -124,8 +124,8 @@ take 10 (map (*2) [1..])
     // Dissertation data point: cold-start and compile time vs Python/JS baselines.
     executionMode: 'main-thread-java',
     cmLang: () => import('@codemirror/lang-java').then(m => m.java()),
-    starterCode: `// Java — compiled and run client-side via CheerpJ (WASM-based OpenJDK)
-// Requires ecj.jar at code/public/ecj.jar — see README Known limitations.
+    starterCode: `// Java - compiled and run client-side via CheerpJ (WASM-based OpenJDK)
+// Requires ecj.jar at code/public/ecj.jar - see README Known limitations.
 
 public class Main {
     public static void main(String[] args) {
@@ -133,7 +133,7 @@ public class Main {
 
         // Simple linked list to demonstrate OOP (object graph in Session 7).
         // Walked via a recursive method rather than a while-loop over local
-        // variables — Java's step tracer only captures method PARAMETERS, not
+        // variables - Java's step tracer only captures method PARAMETERS, not
         // local variables, so passing each node as an argument (recursion is a
         // natural fit) is what makes the object graph actually appear.
         Node third = new Node(3, null);
@@ -176,7 +176,7 @@ class Node {
     ),
     // The trace debugger instruments the TRANSPILED JS (Acorn doesn't understand TS syntax),
     // so it's function-wrapped like the JS starter to give it something to step through.
-    starterCode: `// TypeScript — transpiled client-side by the TypeScript compiler (no server)
+    starterCode: `// TypeScript - transpiled client-side by the TypeScript compiler (no server)
 // Wrapped in a function so the Visual pane can step through it after types are stripped.
 
 function bubbleSort(arr: number[]): number[] {

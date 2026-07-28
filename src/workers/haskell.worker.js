@@ -1,4 +1,4 @@
-// Haskell execution worker — GHC WebAssembly backend (Layer A)
+// Haskell execution worker - GHC WebAssembly backend (Layer A)
 //
 // Architecture: @bjorn3/browser_wasi_shim + a self-hosted GHC WASM runner binary.
 //
@@ -14,17 +14,17 @@
 // BINARY REQUIREMENT (dissertation finding: Layer A needs self-hosted binary):
 //   The GHC WASM runner is NOT on any public CDN. Build it once:
 //
-//   Option A — Nix (recommended, reproducible):
+//   Option A - Nix (recommended, reproducible):
 //     nix shell 'gitlab:haskell-wasm/ghc-wasm-meta?host=gitlab.haskell.org'
 //     cd code/haskell-runner && wasm32-wasi-ghc -O2 runner.hs -o ../public/ghci-runner.wasm
 //
-//   Option B — bootstrap script (Linux/macOS):
+//   Option B - bootstrap script (Linux/macOS):
 //     curl https://gitlab.haskell.org/haskell-wasm/ghc-wasm-meta/-/raw/master/bootstrap.sh | sh
 //     source ~/.ghc-wasm/env
 //     cd code/haskell-runner && wasm32-wasi-ghc -O2 runner.hs -o ../public/ghci-runner.wasm
 //
 //   Expected binary size: 30–220 MB (depends on static-linking depth).
-//   Cold-start time is dissertation data — record it in prd.md Section 8.
+//   Cold-start time is dissertation data - record it in prd.md Section 8.
 //
 // Layer B (lazy reduction visualizer) lives in src/utils/haskellStepper.js.
 // It is pure TypeScript, needs no WASM binary, and runs any time Layer A runs.
@@ -99,11 +99,11 @@ self.onmessage = async ({ data: { id, code } }) => {
   const srcDir = new Map([['Main.hs', new File(enc.encode(code))]])
 
   const fds = [
-    new OpenFile(new File([])),                                // fd 0 — stdin (empty)
-    new ConsoleStdout(buf => stdoutBufs.push(buf.slice())),   // fd 1 — stdout
-    new ConsoleStdout(buf => stderrBufs.push(buf.slice())),   // fd 2 — stderr
-    new PreopenDirectory('/src', srcDir),                      // fd 3 — /src preopened
-    new PreopenDirectory('/tmp', new Map()),                    // fd 4 — /tmp scratch
+    new OpenFile(new File([])),                                // fd 0 - stdin (empty)
+    new ConsoleStdout(buf => stdoutBufs.push(buf.slice())),   // fd 1 - stdout
+    new ConsoleStdout(buf => stderrBufs.push(buf.slice())),   // fd 2 - stderr
+    new PreopenDirectory('/src', srcDir),                      // fd 3 - /src preopened
+    new PreopenDirectory('/tmp', new Map()),                    // fd 4 - /tmp scratch
   ]
 
   const wasi = new WASI(
@@ -135,7 +135,7 @@ self.onmessage = async ({ data: { id, code } }) => {
     timedOut = true
     stderrBufs.push(enc.encode(
       `\n[Timeout] Run exceeded ${RUN_TIMEOUT_MS / 1000}s. ` +
-      `Unlike Python/Pyodide, Haskell WASM instances can be hard-killed — ` +
+      `Unlike Python/Pyodide, Haskell WASM instances can be hard-killed - ` +
       `terminate this worker from App.jsx if needed.`
     ))
   }, RUN_TIMEOUT_MS)
@@ -161,7 +161,7 @@ self.onmessage = async ({ data: { id, code } }) => {
     error: (exitCode !== 0 && !stdout && !stderr)
       ? `GHC runner exited with code ${exitCode}`
       : null,
-    visual: null,   // Layer A: text output only — no step trace
+    visual: null,   // Layer A: text output only - no step trace
     coldStartMs: coldStartMs ?? null,
   })
 }
